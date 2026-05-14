@@ -174,7 +174,7 @@ func (tc *Controller) handleBudget(ctx context.Context, chatID int64) {
 		tc.reply(chatID, "❌ Failed to read budget: "+err.Error())
 		return
 	}
-	tc.replyMarkdown(chatID, expense.FormatBudget(rows))
+	tc.replyMarkdown(chatID, expense.FormatBudget(rows, time.Now()))
 }
 
 func (tc *Controller) handleCallback(ctx context.Context, cb *tgbotapi.CallbackQuery) {
@@ -202,7 +202,7 @@ func (tc *Controller) handleCallback(ctx context.Context, cb *tgbotapi.CallbackQ
 			tc.reply(chatID, "❌ Failed to save: "+err.Error())
 			return
 		}
-		tc.reply(chatID, fmt.Sprintf("✅ Saved: %s — Rp %d", e.Description, e.Nominal))
+		tc.reply(chatID, fmt.Sprintf("✅ Saved: %s — Rp %s", e.Description, utils.FormatNominal(e.Nominal)))
 
 	case "cancel":
 		tc.reply(chatID, "❌ Cancelled.")

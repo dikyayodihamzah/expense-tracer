@@ -6,6 +6,7 @@ import (
 
 	visionapi "cloud.google.com/go/vision/v2/apiv1"
 	"cloud.google.com/go/vision/v2/apiv1/visionpb"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
 
 	"github.com/dikyayodihamzah/expense-tracer/internal/model"
@@ -15,12 +16,12 @@ type gcloudProvider struct {
 	client *visionapi.ImageAnnotatorClient
 }
 
-func newGCloud(credentialsPath string) (*gcloudProvider, error) {
-	if credentialsPath == "" {
-		return nil, fmt.Errorf("GOOGLE_APPLICATION_CREDENTIALS is required for gcloud vision provider")
+func newGCloud(ts oauth2.TokenSource) (*gcloudProvider, error) {
+	if ts == nil {
+		return nil, fmt.Errorf("google OAuth2 token source is required for gcloud vision provider")
 	}
 	ctx := context.Background()
-	client, err := visionapi.NewImageAnnotatorClient(ctx, option.WithCredentialsFile(credentialsPath))
+	client, err := visionapi.NewImageAnnotatorClient(ctx, option.WithTokenSource(ts))
 	if err != nil {
 		return nil, fmt.Errorf("gcloud vision client: %w", err)
 	}

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"golang.org/x/oauth2"
+
 	"github.com/dikyayodihamzah/expense-tracer/internal/model"
 )
 
@@ -58,14 +60,31 @@ Return ONLY a valid JSON object with these exact keys:
 Do not include any text outside the JSON object.`
 
 // New creates a Provider based on the VISION_PROVIDER env value.
-func New(provider, anthropicKey, openaiKey, googleCredentials string) (Provider, error) {
-	switch strings.ToLower(provider) {
-	case "claude", "":
+// If VISION_PROVIDER is unset, the provider is auto-detected from whichever
+// key is present. Returns an error if no provider key is available.
+func New(provider, anthropicKey, openaiKey string, googleTS oauth2.TokenSource) (Provider, error) {
+	p := strings.ToLower(provider)
+
+	if p == "" {
+		switch {
+		case anthropicKey != "":
+			p = "claude"
+		case openaiKey != "":
+			p = "openai"
+		case googleTS != nil:
+			p = "gcloud"
+		default:
+			return nil, fmt.Errorf("at least one vision provider key must be set: ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_CREDENTIALS_FILE")
+		}
+	}
+
+	switch p {
+	case "claude":
 		return newClaude(anthropicKey)
 	case "openai":
 		return newOpenAI(openaiKey)
 	case "gcloud":
-		return newGCloud(googleCredentials)
+		return newGCloud(googleTS)
 	default:
 		return nil, fmt.Errorf("unknown VISION_PROVIDER: %q (valid: claude, openai, gcloud)", provider)
 	}

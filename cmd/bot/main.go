@@ -10,6 +10,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 
+	"github.com/dikyayodihamzah/expense-tracer/internal/gauth"
 	"github.com/dikyayodihamzah/expense-tracer/internal/pkg/utils"
 	"github.com/dikyayodihamzah/expense-tracer/internal/sheets"
 	"github.com/dikyayodihamzah/expense-tracer/internal/telegram"
@@ -25,7 +26,11 @@ func main() {
 	visionProvider := os.Getenv("VISION_PROVIDER")
 	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
 	openaiKey := os.Getenv("OPENAI_API_KEY")
-	googleCreds := utils.MustEnv("GOOGLE_APPLICATION_CREDENTIALS")
+	googleCreds := utils.MustEnv("GOOGLE_CREDENTIALS_FILE")
+	tokenPath := os.Getenv("GOOGLE_TOKEN_FILE")
+	if tokenPath == "" {
+		tokenPath = "token.json"
+	}
 	spreadsheetID := utils.MustEnv("SPREADSHEET_ID")
 	sheetName := os.Getenv("SHEET_NAME")
 	if sheetName == "" {
@@ -41,12 +46,17 @@ func main() {
 	}
 	log.Printf("authorized as @%s", bot.Self.UserName)
 
-	sheetsClient, err := sheets.New(ctx, googleCreds, spreadsheetID, sheetName)
+	googleClient, googleTS, err := gauth.NewClient(ctx, googleCreds, tokenPath)
+	if err != nil {
+		log.Fatalf("failed to create google client: %v", err)
+	}
+
+	sheetsClient, err := sheets.New(ctx, googleClient, spreadsheetID, sheetName)
 	if err != nil {
 		log.Fatalf("failed to create sheets client: %v", err)
 	}
 
-	vp, err := vision.New(visionProvider, anthropicKey, openaiKey, googleCreds)
+	vp, err := vision.New(visionProvider, anthropicKey, openaiKey, googleTS)
 	if err != nil {
 		log.Fatalf("failed to create vision provider: %v", err)
 	}

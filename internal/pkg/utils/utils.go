@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// FormatNominal formats an integer as a comma-separated number string.
+// FormatNominal formats an integer using Indonesian number format (dot as thousand separator).
 // Negative values are prefixed with a minus sign.
 func FormatNominal(n int64) string {
 	if n < 0 {
@@ -19,7 +19,7 @@ func FormatNominal(n int64) string {
 	var result []byte
 	for i, c := range s {
 		if i > 0 && (len(s)-i)%3 == 0 {
-			result = append(result, ',')
+			result = append(result, '.')
 		}
 		result = append(result, byte(c))
 	}

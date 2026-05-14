@@ -123,28 +123,30 @@ func FormatSummary(rows [][]interface{}, month string) string {
 	return fmt.Sprintf("*%s Summary*\n\n%s\n\n*Total: Rp %s*", month, strings.Join(lines, "\n"), utils.FormatNominal(grandTotal))
 }
 
-// FormatBudget formats the monthly budget progress.
-func FormatBudget(rows [][]interface{}) string {
+// FormatBudget formats the monthly budget progress for the given day.
+func FormatBudget(rows [][]interface{}, now time.Time) string {
 	if len(rows) < 2 {
 		return "No budget data available."
 	}
 
-	var lastDay, dailyExp, cumExp, cumBudget string
+	todayDay := strconv.Itoa(now.Day())
+
 	for _, row := range rows[1:] {
 		if len(row) < 4 {
 			continue
 		}
 		d, _ := row[0].(string)
-		if d != "" {
-			lastDay = d
-			dailyExp, _ = row[1].(string)
-			cumExp, _ = row[2].(string)
-			cumBudget, _ = row[3].(string)
+		if d != todayDay {
+			continue
 		}
+		dailyExp, _ := row[1].(string)
+		cumExp, _ := row[2].(string)
+		cumBudget, _ := row[3].(string)
+		return fmt.Sprintf(
+			"*Budget Progress (Day %s)*\n\n📆 Today's Expense: %s\n📊 Cumulative Expense: %s\n🎯 Cumulative Budget: %s",
+			d, dailyExp, cumExp, cumBudget,
+		)
 	}
 
-	return fmt.Sprintf(
-		"*Budget Progress (Day %s)*\n\n📆 Today's Expense: %s\n📊 Cumulative Expense: %s\n🎯 Cumulative Budget: %s",
-		lastDay, dailyExp, cumExp, cumBudget,
-	)
+	return fmt.Sprintf("No budget data found for day %s.", todayDay)
 }

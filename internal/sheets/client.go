@@ -3,6 +3,7 @@ package sheets
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"google.golang.org/api/option"
@@ -17,11 +18,8 @@ type Client struct {
 	sheetName     string
 }
 
-func New(ctx context.Context, credentialsPath, spreadsheetID, sheetName string) (*Client, error) {
-	svc, err := sheetsapi.NewService(ctx,
-		option.WithCredentialsFile(credentialsPath),
-		option.WithScopes(sheetsapi.SpreadsheetsScope),
-	)
+func New(ctx context.Context, httpClient *http.Client, spreadsheetID, sheetName string) (*Client, error) {
+	svc, err := sheetsapi.NewService(ctx, option.WithHTTPClient(httpClient))
 	if err != nil {
 		return nil, fmt.Errorf("sheets.NewService: %w", err)
 	}

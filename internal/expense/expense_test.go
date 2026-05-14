@@ -31,6 +31,24 @@ func TestParseAddCommand_MissingArgs(t *testing.T) {
 	}
 }
 
+func TestFormatBudget_MatchesToday(t *testing.T) {
+	rows := [][]interface{}{
+		{"Day", "Daily", "Cumulative", "Budget"},
+		{"13", "50,000", "600,000", "650,000"},
+		{"14", "35,000", "635,000", "700,000"},
+		{"15", "0", "635,000", "750,000"},
+	}
+	now := time.Date(2026, 5, 14, 0, 0, 0, 0, time.Local)
+	out := expense.FormatBudget(rows, now)
+	if !containsStr(out, "Day 14") {
+		t.Errorf("expected Day 14, got: %s", out)
+	}
+}
+
+func containsStr(s, sub string) bool {
+	return len(s) >= len(sub) && (s == sub || len(s) > 0 && (s[:len(sub)] == sub || containsStr(s[1:], sub)))
+}
+
 func TestFormatSummary_GroupsByCategory(t *testing.T) {
 	rows := [][]interface{}{
 		{"ts", "14/05/2026", "May", "Food", "lunch", "35000"},
