@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -24,6 +25,11 @@ func FormatNominal(n int64) string {
 		result = append(result, byte(c))
 	}
 	return string(result)
+}
+
+// FormatNominalFromStr formats a string using Indonesian number format (dot as thousand separator).
+func FormatNominalFromStr(s string) string {
+	return strings.ReplaceAll(s, ",", ".")
 }
 
 // MustEnv returns the value of an environment variable or fatals if it is empty.

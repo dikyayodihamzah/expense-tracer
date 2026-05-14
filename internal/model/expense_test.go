@@ -26,3 +26,20 @@ func TestMatchCategory_CaseInsensitive(t *testing.T) {
 		t.Errorf("expected %q, got %q", model.CategoryFood, got)
 	}
 }
+
+func TestAllCategories(t *testing.T) {
+	cats := model.AllCategories()
+	if len(cats) == 0 {
+		t.Fatal("expected non-empty category list")
+	}
+	found := false
+	for _, c := range cats {
+		if c == model.CategoryFood {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected Food in AllCategories")
+	}
+}
