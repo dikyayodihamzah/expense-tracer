@@ -151,6 +151,9 @@ func FormatBudget(rows [][]interface{}) string {
 }
 
 func formatNominal(n int64) string {
+	if n < 0 {
+		return "-" + formatNominal(-n)
+	}
 	s := strconv.FormatInt(n, 10)
 	var result []byte
 	for i, c := range s {

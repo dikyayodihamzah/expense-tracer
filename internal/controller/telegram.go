@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -21,6 +22,7 @@ type TelegramController struct {
 	sheets *repository.SheetsClient
 	vision repository.VisionProvider
 
+	mu sync.Mutex
 	// pendingExpense holds a parsed expense awaiting user confirmation.
 	// Key: chatID, Value: *model.Expense
 	pendingExpense map[int64]*model.Expense
@@ -102,7 +104,9 @@ func (tc *TelegramController) handlePhoto(ctx context.Context, msg *tgbotapi.Mes
 		return
 	}
 
+	tc.mu.Lock()
 	tc.pendingExpense[chatID] = expense
+	tc.mu.Unlock()
 	tc.sendConfirmation(chatID, expense)
 }
 
@@ -123,7 +127,9 @@ func (tc *TelegramController) handleAdd(ctx context.Context, chatID int64, args 
 		return
 	}
 
+	tc.mu.Lock()
 	tc.pendingExpense[chatID] = expense
+	tc.mu.Unlock()
 	tc.sendConfirmation(chatID, expense)
 }
 
@@ -168,7 +174,13 @@ func (tc *TelegramController) handleCallback(ctx context.Context, cb *tgbotapi.C
 	chatID := cb.Message.Chat.ID
 	tc.bot.Request(tgbotapi.NewCallback(cb.ID, ""))
 
+	tc.mu.Lock()
 	expense, ok := tc.pendingExpense[chatID]
+	if ok {
+		delete(tc.pendingExpense, chatID)
+	}
+	tc.mu.Unlock()
+
 	if !ok {
 		tc.reply(chatID, "No pending expense found. Please submit again.")
 		return
@@ -180,11 +192,9 @@ func (tc *TelegramController) handleCallback(ctx context.Context, cb *tgbotapi.C
 			tc.reply(chatID, "❌ Failed to save: "+err.Error())
 			return
 		}
-		delete(tc.pendingExpense, chatID)
 		tc.reply(chatID, fmt.Sprintf("✅ Saved: %s — Rp %d", expense.Description, expense.Nominal))
 
 	case "cancel":
-		delete(tc.pendingExpense, chatID)
 		tc.reply(chatID, "❌ Cancelled.")
 	}
 }
@@ -214,12 +224,13 @@ func (tc *TelegramController) replyMarkdown(chatID int64, text string) {
 }
 
 func downloadFile(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
+	return io.ReadAll(io.LimitReader(resp.Body, 20*1024*1024)) // 20 MB max
 }
 
 // Run starts the Telegram long-polling loop. Blocks until ctx is cancelled.

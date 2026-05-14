@@ -29,7 +29,7 @@ func ParseVisionJSON(data []byte) (*model.Expense, error) {
 	if idx := strings.Index(s, "{"); idx > 0 {
 		s = s[idx:]
 	}
-	if idx := strings.LastIndex(s, "}"); idx >= 0 && idx < len(s)-1 {
+	if idx := strings.LastIndex(s, "}"); idx >= 0 {
 		s = s[:idx+1]
 	}
 

@@ -13,26 +13,25 @@ import (
 
 // gcloudVision implements VisionProvider using Google Cloud Vision API.
 type gcloudVision struct {
-	credentialsPath string
+	client *vision.ImageAnnotatorClient
 }
 
 // newGCloudVision creates a new Google Cloud Vision provider.
-func newGCloudVision(credentialsPath string) (VisionProvider, error) {
+func newGCloudVision(credentialsPath string) (*gcloudVision, error) {
 	if credentialsPath == "" {
-		return nil, fmt.Errorf("credentials path is required for Google Cloud vision provider")
+		return nil, fmt.Errorf("GOOGLE_APPLICATION_CREDENTIALS is required for gcloud vision provider")
 	}
-	return &gcloudVision{credentialsPath: credentialsPath}, nil
+	ctx := context.Background()
+	client, err := vision.NewImageAnnotatorClient(ctx, option.WithCredentialsFile(credentialsPath))
+	if err != nil {
+		return nil, fmt.Errorf("gcloud vision client: %w", err)
+	}
+	return &gcloudVision{client: client}, nil
 }
 
 // ExtractExpense sends the image to Google Cloud Vision and returns an Expense
 // with the detected OCR text as the Description.
-func (gv *gcloudVision) ExtractExpense(ctx context.Context, imageData []byte) (*model.Expense, error) {
-	client, err := vision.NewImageAnnotatorClient(ctx, option.WithCredentialsFile(gv.credentialsPath))
-	if err != nil {
-		return nil, fmt.Errorf("create gcloud vision client: %w", err)
-	}
-	defer client.Close()
-
+func (g *gcloudVision) ExtractExpense(ctx context.Context, imageData []byte) (*model.Expense, error) {
 	req := &visionpb.BatchAnnotateImagesRequest{
 		Requests: []*visionpb.AnnotateImageRequest{
 			{
@@ -44,7 +43,7 @@ func (gv *gcloudVision) ExtractExpense(ctx context.Context, imageData []byte) (*
 		},
 	}
 
-	resp, err := client.BatchAnnotateImages(ctx, req)
+	resp, err := g.client.BatchAnnotateImages(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("gcloud vision API call: %w", err)
 	}
