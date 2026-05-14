@@ -71,13 +71,3 @@ func NewVisionProvider(provider, anthropicKey, openaiKey, googleCredentials stri
 		return nil, fmt.Errorf("unknown VISION_PROVIDER: %q (valid: claude, openai, gcloud)", provider)
 	}
 }
-
-// newOpenAIVision is a placeholder for the OpenAI vision provider (not yet implemented).
-func newOpenAIVision(_ string) (VisionProvider, error) {
-	return nil, fmt.Errorf("OpenAI vision provider not yet implemented")
-}
-
-// newGCloudVision is a placeholder for the Google Cloud vision provider (not yet implemented).
-func newGCloudVision(_ string) (VisionProvider, error) {
-	return nil, fmt.Errorf("GCloud vision provider not yet implemented")
-}
