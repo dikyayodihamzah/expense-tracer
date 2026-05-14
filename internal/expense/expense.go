@@ -67,7 +67,7 @@ func FormatConfirmation(e *model.Expense) string {
 }
 
 // FormatToday formats today's expenses as a message.
-func FormatToday(rows [][]interface{}, today string) string {
+func FormatToday(rows [][]any, today string) string {
 	var lines []string
 	var total int64
 
@@ -92,7 +92,7 @@ func FormatToday(rows [][]interface{}, today string) string {
 }
 
 // FormatSummary formats a monthly category breakdown.
-func FormatSummary(rows [][]interface{}, month string) string {
+func FormatSummary(rows [][]any, month string) string {
 	totals := make(map[string]int64)
 	var grandTotal int64
 
@@ -124,7 +124,7 @@ func FormatSummary(rows [][]interface{}, month string) string {
 }
 
 // FormatBudget formats the monthly budget progress for the given day.
-func FormatBudget(rows [][]interface{}, now time.Time) string {
+func FormatBudget(rows [][]any, now time.Time) string {
 	if len(rows) < 2 {
 		return "No budget data available."
 	}
@@ -139,9 +139,9 @@ func FormatBudget(rows [][]interface{}, now time.Time) string {
 		if d != todayDay {
 			continue
 		}
-		dailyExp, _ := row[1].(string)
-		cumExp, _ := row[2].(string)
-		cumBudget, _ := row[3].(string)
+		dailyExp := utils.FormatNominalFromStr(row[1].(string))
+		cumExp := utils.FormatNominalFromStr(row[2].(string))
+		cumBudget := utils.FormatNominalFromStr(row[3].(string))
 		return fmt.Sprintf(
 			"*Budget Progress (Day %s)*\n\n📆 Today's Expense: %s\n📊 Cumulative Expense: %s\n🎯 Cumulative Budget: %s",
 			d, dailyExp, cumExp, cumBudget,

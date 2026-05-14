@@ -364,9 +364,9 @@ func NewSheetsClient(ctx context.Context, credentialsPath, spreadsheetID, sheetN
 
 // BuildRow converts an Expense into a Sheets row slice.
 // Exported so it can be unit-tested without a live Sheets connection.
-func BuildRow(e *model.Expense, now time.Time) []interface{} {
+func BuildRow(e *model.Expense, now time.Time) []any {
 	timestamp := now.Format("02/01/2006 15:04:05")
-	return []interface{}{
+	return []any{
 		timestamp,
 		e.Date,
 		e.Month,
@@ -380,7 +380,7 @@ func BuildRow(e *model.Expense, now time.Time) []interface{} {
 func (c *SheetsClient) AppendExpense(ctx context.Context, e *model.Expense) error {
 	row := BuildRow(e, time.Now())
 	vr := &sheets.ValueRange{
-		Values: [][]interface{}{row},
+		Values: [][]any{row},
 	}
 	_, err := c.svc.Spreadsheets.Values.
 		Append(c.spreadsheetID, c.sheetName, vr).
@@ -436,7 +436,7 @@ func (c *SheetsClient) DeleteLastRow(ctx context.Context) error {
 }
 
 // ReadTransactions reads all data rows from the transaction sheet.
-func (c *SheetsClient) ReadTransactions(ctx context.Context) ([][]interface{}, error) {
+func (c *SheetsClient) ReadTransactions(ctx context.Context) ([][]any, error) {
 	readRange := c.sheetName + "!A2:F"
 	resp, err := c.svc.Spreadsheets.Values.
 		Get(c.spreadsheetID, readRange).
@@ -449,7 +449,7 @@ func (c *SheetsClient) ReadTransactions(ctx context.Context) ([][]interface{}, e
 }
 
 // ReadMonthlyExpense reads columns A–D from Monthly Expense sheet.
-func (c *SheetsClient) ReadMonthlyExpense(ctx context.Context) ([][]interface{}, error) {
+func (c *SheetsClient) ReadMonthlyExpense(ctx context.Context) ([][]any, error) {
 	resp, err := c.svc.Spreadsheets.Values.
 		Get(c.spreadsheetID, "Monthly Expense!A:D").
 		Context(ctx).
@@ -908,7 +908,7 @@ func TestParseAddCommand_MissingArgs(t *testing.T) {
 }
 
 func TestFormatSummary_GroupsByCategory(t *testing.T) {
-	rows := [][]interface{}{
+	rows := [][]any{
 		{"ts", "14/05/2026", "May", "Food", "lunch", "35000"},
 		{"ts", "14/05/2026", "May", "Food", "dinner", "50000"},
 		{"ts", "14/05/2026", "May", "Transportation", "grab", "25000"},
@@ -1023,7 +1023,7 @@ func FormatConfirmation(e *model.Expense) string {
 }
 
 // FormatToday formats today's expenses as a message.
-func FormatToday(rows [][]interface{}, today string) string {
+func FormatToday(rows [][]any, today string) string {
 	var lines []string
 	var total int64
 
@@ -1048,7 +1048,7 @@ func FormatToday(rows [][]interface{}, today string) string {
 }
 
 // FormatSummary formats a monthly category breakdown.
-func FormatSummary(rows [][]interface{}, month string) string {
+func FormatSummary(rows [][]any, month string) string {
 	totals := make(map[string]int64)
 	var grandTotal int64
 
@@ -1080,7 +1080,7 @@ func FormatSummary(rows [][]interface{}, month string) string {
 }
 
 // FormatBudget formats the monthly budget progress.
-func FormatBudget(rows [][]interface{}) string {
+func FormatBudget(rows [][]any) string {
 	if len(rows) < 2 {
 		return "No budget data available."
 	}

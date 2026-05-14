@@ -32,9 +32,9 @@ func New(ctx context.Context, httpClient *http.Client, spreadsheetID, sheetName 
 
 // BuildRow converts an Expense into a Sheets row slice.
 // Exported so it can be unit-tested without a live Sheets connection.
-func BuildRow(e *model.Expense, now time.Time) []interface{} {
+func BuildRow(e *model.Expense, now time.Time) []any {
 	timestamp := now.Format("02/01/2006 15:04:05")
-	return []interface{}{
+	return []any{
 		timestamp,
 		e.Date,
 		e.Month,
@@ -47,7 +47,7 @@ func BuildRow(e *model.Expense, now time.Time) []interface{} {
 func (c *Client) AppendExpense(ctx context.Context, e *model.Expense) error {
 	row := BuildRow(e, time.Now())
 	vr := &sheetsapi.ValueRange{
-		Values: [][]interface{}{row},
+		Values: [][]any{row},
 	}
 	if _, err := c.svc.Spreadsheets.Values.
 		Append(c.spreadsheetID, c.sheetName, vr).
@@ -99,7 +99,7 @@ func (c *Client) DeleteLastRow(ctx context.Context) error {
 	return nil
 }
 
-func (c *Client) ReadTransactions(ctx context.Context) ([][]interface{}, error) {
+func (c *Client) ReadTransactions(ctx context.Context) ([][]any, error) {
 	readRange := c.sheetName + "!A2:F"
 	resp, err := c.svc.Spreadsheets.Values.
 		Get(c.spreadsheetID, readRange).
@@ -111,7 +111,7 @@ func (c *Client) ReadTransactions(ctx context.Context) ([][]interface{}, error) 
 	return resp.Values, nil
 }
 
-func (c *Client) ReadMonthlyExpense(ctx context.Context) ([][]interface{}, error) {
+func (c *Client) ReadMonthlyExpense(ctx context.Context) ([][]any, error) {
 	resp, err := c.svc.Spreadsheets.Values.
 		Get(c.spreadsheetID, "Monthly Expense!A:D").
 		Context(ctx).
