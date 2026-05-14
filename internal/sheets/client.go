@@ -1,4 +1,4 @@
-package repository
+package sheets
 
 import (
 	"context"
@@ -6,26 +6,26 @@ import (
 	"time"
 
 	"google.golang.org/api/option"
-	"google.golang.org/api/sheets/v4"
+	sheetsapi "google.golang.org/api/sheets/v4"
 
 	"github.com/dikyayodihamzah/expense-tracer/internal/model"
 )
 
-type SheetsClient struct {
-	svc           *sheets.Service
+type Client struct {
+	svc           *sheetsapi.Service
 	spreadsheetID string
 	sheetName     string
 }
 
-func NewSheetsClient(ctx context.Context, credentialsPath, spreadsheetID, sheetName string) (*SheetsClient, error) {
-	svc, err := sheets.NewService(ctx,
+func New(ctx context.Context, credentialsPath, spreadsheetID, sheetName string) (*Client, error) {
+	svc, err := sheetsapi.NewService(ctx,
 		option.WithCredentialsFile(credentialsPath),
-		option.WithScopes(sheets.SpreadsheetsScope),
+		option.WithScopes(sheetsapi.SpreadsheetsScope),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("sheets.NewService: %w", err)
 	}
-	return &SheetsClient{
+	return &Client{
 		svc:           svc,
 		spreadsheetID: spreadsheetID,
 		sheetName:     sheetName,
@@ -46,25 +46,22 @@ func BuildRow(e *model.Expense, now time.Time) []interface{} {
 	}
 }
 
-// AppendExpense appends an expense row to the configured sheet.
-func (c *SheetsClient) AppendExpense(ctx context.Context, e *model.Expense) error {
+func (c *Client) AppendExpense(ctx context.Context, e *model.Expense) error {
 	row := BuildRow(e, time.Now())
-	vr := &sheets.ValueRange{
+	vr := &sheetsapi.ValueRange{
 		Values: [][]interface{}{row},
 	}
-	_, err := c.svc.Spreadsheets.Values.
+	if _, err := c.svc.Spreadsheets.Values.
 		Append(c.spreadsheetID, c.sheetName, vr).
 		ValueInputOption("USER_ENTERED").
 		Context(ctx).
-		Do()
-	if err != nil {
+		Do(); err != nil {
 		return fmt.Errorf("append row: %w", err)
 	}
 	return nil
 }
 
-// DeleteLastRow removes the last data row from the sheet.
-func (c *SheetsClient) DeleteLastRow(ctx context.Context) error {
+func (c *Client) DeleteLastRow(ctx context.Context) error {
 	readRange := c.sheetName + "!A:A"
 	resp, err := c.svc.Spreadsheets.Values.
 		Get(c.spreadsheetID, readRange).
@@ -84,11 +81,11 @@ func (c *SheetsClient) DeleteLastRow(ctx context.Context) error {
 		return err
 	}
 
-	req := &sheets.BatchUpdateSpreadsheetRequest{
-		Requests: []*sheets.Request{
+	req := &sheetsapi.BatchUpdateSpreadsheetRequest{
+		Requests: []*sheetsapi.Request{
 			{
-				DeleteDimension: &sheets.DeleteDimensionRequest{
-					Range: &sheets.DimensionRange{
+				DeleteDimension: &sheetsapi.DeleteDimensionRequest{
+					Range: &sheetsapi.DimensionRange{
 						SheetId:    sheetID,
 						Dimension:  "ROWS",
 						StartIndex: int64(lastRow - 1),
@@ -98,15 +95,13 @@ func (c *SheetsClient) DeleteLastRow(ctx context.Context) error {
 			},
 		},
 	}
-	_, err = c.svc.Spreadsheets.BatchUpdate(c.spreadsheetID, req).Context(ctx).Do()
-	if err != nil {
+	if _, err := c.svc.Spreadsheets.BatchUpdate(c.spreadsheetID, req).Context(ctx).Do(); err != nil {
 		return fmt.Errorf("delete row: %w", err)
 	}
 	return nil
 }
 
-// ReadTransactions reads all data rows from the transaction sheet.
-func (c *SheetsClient) ReadTransactions(ctx context.Context) ([][]interface{}, error) {
+func (c *Client) ReadTransactions(ctx context.Context) ([][]interface{}, error) {
 	readRange := c.sheetName + "!A2:F"
 	resp, err := c.svc.Spreadsheets.Values.
 		Get(c.spreadsheetID, readRange).
@@ -118,8 +113,7 @@ func (c *SheetsClient) ReadTransactions(ctx context.Context) ([][]interface{}, e
 	return resp.Values, nil
 }
 
-// ReadMonthlyExpense reads columns A-D from Monthly Expense sheet.
-func (c *SheetsClient) ReadMonthlyExpense(ctx context.Context) ([][]interface{}, error) {
+func (c *Client) ReadMonthlyExpense(ctx context.Context) ([][]interface{}, error) {
 	resp, err := c.svc.Spreadsheets.Values.
 		Get(c.spreadsheetID, "Monthly Expense!A:D").
 		Context(ctx).
@@ -130,7 +124,7 @@ func (c *SheetsClient) ReadMonthlyExpense(ctx context.Context) ([][]interface{},
 	return resp.Values, nil
 }
 
-func (c *SheetsClient) getSheetID(ctx context.Context) (int64, error) {
+func (c *Client) getSheetID(ctx context.Context) (int64, error) {
 	ss, err := c.svc.Spreadsheets.Get(c.spreadsheetID).Context(ctx).Do()
 	if err != nil {
 		return 0, fmt.Errorf("get spreadsheet: %w", err)

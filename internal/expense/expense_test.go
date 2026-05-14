@@ -1,15 +1,15 @@
-package service_test
+package expense_test
 
 import (
 	"testing"
 	"time"
 
+	"github.com/dikyayodihamzah/expense-tracer/internal/expense"
 	"github.com/dikyayodihamzah/expense-tracer/internal/model"
-	"github.com/dikyayodihamzah/expense-tracer/internal/service"
 )
 
 func TestParseAddCommand_AllArgs(t *testing.T) {
-	e, err := service.ParseAddCommand("makan siang 35000 Food")
+	e, err := expense.ParseAddCommand("makan siang 35000 Food")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -25,7 +25,7 @@ func TestParseAddCommand_AllArgs(t *testing.T) {
 }
 
 func TestParseAddCommand_MissingArgs(t *testing.T) {
-	_, err := service.ParseAddCommand("makan siang")
+	_, err := expense.ParseAddCommand("makan siang")
 	if err == nil {
 		t.Error("expected error for missing args")
 	}
@@ -37,15 +37,14 @@ func TestFormatSummary_GroupsByCategory(t *testing.T) {
 		{"ts", "14/05/2026", "May", "Food", "dinner", "50000"},
 		{"ts", "14/05/2026", "May", "Transportation", "grab", "25000"},
 	}
-	month := "May"
-	out := service.FormatSummary(rows, month)
+	out := expense.FormatSummary(rows, "May")
 	if out == "" {
 		t.Error("expected non-empty summary")
 	}
 }
 
 func TestMonthFromDate_ValidDate(t *testing.T) {
-	got, err := service.MonthFromDate("14/05/2026")
+	got, err := expense.MonthFromDate("14/05/2026")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -56,7 +55,7 @@ func TestMonthFromDate_ValidDate(t *testing.T) {
 
 func TestFillExpenseMeta_SetsMonthFromDate(t *testing.T) {
 	e := &model.Expense{Date: "14/05/2026"}
-	err := service.FillExpenseMeta(e, time.Date(2026, 5, 14, 0, 0, 0, 0, time.Local))
+	err := expense.FillExpenseMeta(e, time.Date(2026, 5, 14, 0, 0, 0, 0, time.Local))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

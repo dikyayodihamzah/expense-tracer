@@ -10,8 +10,10 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 
-	"github.com/dikyayodihamzah/expense-tracer/internal/controller"
-	"github.com/dikyayodihamzah/expense-tracer/internal/repository"
+	"github.com/dikyayodihamzah/expense-tracer/internal/pkg/utils"
+	"github.com/dikyayodihamzah/expense-tracer/internal/sheets"
+	"github.com/dikyayodihamzah/expense-tracer/internal/telegram"
+	"github.com/dikyayodihamzah/expense-tracer/internal/vision"
 )
 
 func main() {
@@ -19,12 +21,12 @@ func main() {
 		log.Println("no .env file found, reading from environment")
 	}
 
-	token := mustEnv("TELEGRAM_BOT_TOKEN")
+	token := utils.MustEnv("TELEGRAM_BOT_TOKEN")
 	visionProvider := os.Getenv("VISION_PROVIDER")
 	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
 	openaiKey := os.Getenv("OPENAI_API_KEY")
-	googleCreds := mustEnv("GOOGLE_APPLICATION_CREDENTIALS")
-	spreadsheetID := mustEnv("SPREADSHEET_ID")
+	googleCreds := utils.MustEnv("GOOGLE_APPLICATION_CREDENTIALS")
+	spreadsheetID := utils.MustEnv("SPREADSHEET_ID")
 	sheetName := os.Getenv("SHEET_NAME")
 	if sheetName == "" {
 		sheetName = "Transaction 2026"
@@ -39,26 +41,18 @@ func main() {
 	}
 	log.Printf("authorized as @%s", bot.Self.UserName)
 
-	sheetsClient, err := repository.NewSheetsClient(ctx, googleCreds, spreadsheetID, sheetName)
+	sheetsClient, err := sheets.New(ctx, googleCreds, spreadsheetID, sheetName)
 	if err != nil {
 		log.Fatalf("failed to create sheets client: %v", err)
 	}
 
-	vision, err := repository.NewVisionProvider(visionProvider, anthropicKey, openaiKey, googleCreds)
+	vp, err := vision.New(visionProvider, anthropicKey, openaiKey, googleCreds)
 	if err != nil {
 		log.Fatalf("failed to create vision provider: %v", err)
 	}
 
-	ctrl := controller.NewTelegramController(bot, sheetsClient, vision)
+	ctrl := telegram.New(bot, sheetsClient, vp)
 	ctrl.Run(ctx)
 
 	log.Println("bot stopped")
-}
-
-func mustEnv(key string) string {
-	v := os.Getenv(key)
-	if v == "" {
-		log.Fatalf("%s environment variable is required", key)
-	}
-	return v
 }

@@ -1,4 +1,4 @@
-package service
+package expense
 
 import (
 	"fmt"
@@ -7,17 +7,16 @@ import (
 	"time"
 
 	"github.com/dikyayodihamzah/expense-tracer/internal/model"
+	"github.com/dikyayodihamzah/expense-tracer/internal/pkg/utils"
 )
 
 // ParseAddCommand parses "/add <description> <nominal> <category>" args.
-// args is the text after "/add ".
 func ParseAddCommand(args string) (*model.Expense, error) {
 	parts := strings.Fields(args)
 	if len(parts) < 3 {
 		return nil, fmt.Errorf("usage: /add <description> <nominal> <category>")
 	}
 
-	// Last part is category, second-to-last is nominal, rest is description.
 	categoryStr := parts[len(parts)-1]
 	nominalStr := parts[len(parts)-2]
 	description := strings.Join(parts[:len(parts)-2], " ")
@@ -63,7 +62,7 @@ func FormatConfirmation(e *model.Expense) string {
 		e.Date,
 		string(e.Category),
 		e.Description,
-		formatNominal(e.Nominal),
+		utils.FormatNominal(e.Nominal),
 	)
 }
 
@@ -83,13 +82,13 @@ func FormatToday(rows [][]interface{}, today string) string {
 		nomStr, _ := row[5].(string)
 		nom, _ := strconv.ParseInt(nomStr, 10, 64)
 		total += nom
-		lines = append(lines, fmt.Sprintf("• %s — Rp %s", desc, formatNominal(nom)))
+		lines = append(lines, fmt.Sprintf("• %s — Rp %s", desc, utils.FormatNominal(nom)))
 	}
 
 	if len(lines) == 0 {
 		return "No expenses recorded today."
 	}
-	return fmt.Sprintf("*Today (%s)*\n\n%s\n\n*Total: Rp %s*", today, strings.Join(lines, "\n"), formatNominal(total))
+	return fmt.Sprintf("*Today (%s)*\n\n%s\n\n*Total: Rp %s*", today, strings.Join(lines, "\n"), utils.FormatNominal(total))
 }
 
 // FormatSummary formats a monthly category breakdown.
@@ -118,10 +117,10 @@ func FormatSummary(rows [][]interface{}, month string) string {
 	var lines []string
 	for _, c := range model.AllCategories() {
 		if v, ok := totals[string(c)]; ok {
-			lines = append(lines, fmt.Sprintf("• %s: Rp %s", c, formatNominal(v)))
+			lines = append(lines, fmt.Sprintf("• %s: Rp %s", c, utils.FormatNominal(v)))
 		}
 	}
-	return fmt.Sprintf("*%s Summary*\n\n%s\n\n*Total: Rp %s*", month, strings.Join(lines, "\n"), formatNominal(grandTotal))
+	return fmt.Sprintf("*%s Summary*\n\n%s\n\n*Total: Rp %s*", month, strings.Join(lines, "\n"), utils.FormatNominal(grandTotal))
 }
 
 // FormatBudget formats the monthly budget progress.
@@ -131,7 +130,7 @@ func FormatBudget(rows [][]interface{}) string {
 	}
 
 	var lastDay, dailyExp, cumExp, cumBudget string
-	for _, row := range rows[1:] { // skip header
+	for _, row := range rows[1:] {
 		if len(row) < 4 {
 			continue
 		}
@@ -148,19 +147,4 @@ func FormatBudget(rows [][]interface{}) string {
 		"*Budget Progress (Day %s)*\n\n📆 Today's Expense: %s\n📊 Cumulative Expense: %s\n🎯 Cumulative Budget: %s",
 		lastDay, dailyExp, cumExp, cumBudget,
 	)
-}
-
-func formatNominal(n int64) string {
-	if n < 0 {
-		return "-" + formatNominal(-n)
-	}
-	s := strconv.FormatInt(n, 10)
-	var result []byte
-	for i, c := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			result = append(result, ',')
-		}
-		result = append(result, byte(c))
-	}
-	return string(result)
 }

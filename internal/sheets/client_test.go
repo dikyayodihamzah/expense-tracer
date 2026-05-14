@@ -1,11 +1,11 @@
-package repository_test
+package sheets_test
 
 import (
 	"testing"
 	"time"
 
 	"github.com/dikyayodihamzah/expense-tracer/internal/model"
-	"github.com/dikyayodihamzah/expense-tracer/internal/repository"
+	"github.com/dikyayodihamzah/expense-tracer/internal/sheets"
 )
 
 func TestBuildRow_FieldOrder(t *testing.T) {
@@ -17,7 +17,7 @@ func TestBuildRow_FieldOrder(t *testing.T) {
 		Nominal:     50000,
 	}
 	now := time.Date(2026, 5, 14, 12, 0, 0, 0, time.Local)
-	row := repository.BuildRow(e, now)
+	row := sheets.BuildRow(e, now)
 
 	if len(row) != 6 {
 		t.Fatalf("expected 6 columns, got %d", len(row))

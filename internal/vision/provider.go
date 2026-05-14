@@ -1,4 +1,4 @@
-package repository
+package vision
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"github.com/dikyayodihamzah/expense-tracer/internal/model"
 )
 
-// VisionProvider extracts expense fields from an image.
-type VisionProvider interface {
+// Provider extracts expense fields from an image.
+type Provider interface {
 	ExtractExpense(ctx context.Context, imageData []byte) (*model.Expense, error)
 }
 
@@ -21,10 +21,9 @@ type visionResponse struct {
 	Nominal     int64  `json:"nominal"`
 }
 
-// ParseVisionJSON parses the JSON returned by any vision provider.
+// ParseJSON parses the JSON returned by any vision provider.
 // Exported for testing without a live API call.
-func ParseVisionJSON(data []byte) (*model.Expense, error) {
-	// Strip markdown code fences if present (some models wrap JSON in ```json ... ```)
+func ParseJSON(data []byte) (*model.Expense, error) {
 	s := strings.TrimSpace(string(data))
 	if idx := strings.Index(s, "{"); idx > 0 {
 		s = s[idx:]
@@ -46,8 +45,8 @@ func ParseVisionJSON(data []byte) (*model.Expense, error) {
 	}, nil
 }
 
-// visionPrompt is the shared prompt sent to every vision provider.
-const visionPrompt = `You are an expense extraction assistant.
+// prompt is the shared prompt sent to every vision provider.
+const prompt = `You are an expense extraction assistant.
 Analyze this receipt or bank transaction image and extract the expense details.
 Return ONLY a valid JSON object with these exact keys:
 {
@@ -58,15 +57,15 @@ Return ONLY a valid JSON object with these exact keys:
 }
 Do not include any text outside the JSON object.`
 
-// NewVisionProvider creates a VisionProvider based on the VISION_PROVIDER env value.
-func NewVisionProvider(provider, anthropicKey, openaiKey, googleCredentials string) (VisionProvider, error) {
+// New creates a Provider based on the VISION_PROVIDER env value.
+func New(provider, anthropicKey, openaiKey, googleCredentials string) (Provider, error) {
 	switch strings.ToLower(provider) {
 	case "claude", "":
-		return newClaudeVision(anthropicKey)
+		return newClaude(anthropicKey)
 	case "openai":
-		return newOpenAIVision(openaiKey)
+		return newOpenAI(openaiKey)
 	case "gcloud":
-		return newGCloudVision(googleCredentials)
+		return newGCloud(googleCredentials)
 	default:
 		return nil, fmt.Errorf("unknown VISION_PROVIDER: %q (valid: claude, openai, gcloud)", provider)
 	}

@@ -29,21 +29,18 @@ var allCategories = []Category{
 }
 
 type Expense struct {
-	Date        string   // DD/MM/YYYY
-	Month       string   // January, February, ...
+	Date        string // DD/MM/YYYY
+	Month       string // January, February, ...
 	Category    Category
 	Description string
 	Nominal     int64
 }
 
-// MatchCategory matches a string to a known Category, case-insensitive.
+// MatchCategory matches a string to a known Category, case-sensitive.
 // Returns CategoryOthers if no match found.
 func MatchCategory(s string) Category {
-	lower := strings.ToLower(strings.TrimSpace(s))
-	for _, c := range allCategories {
-		if strings.ToLower(string(c)) == lower {
-			return c
-		}
+	if category, ok := AllCategoriesMap()[strings.ToLower(strings.TrimSpace(s))]; ok {
+		return category
 	}
 	return CategoryOthers
 }
@@ -52,5 +49,13 @@ func MatchCategory(s string) Category {
 func AllCategories() []Category {
 	result := make([]Category, len(allCategories))
 	copy(result, allCategories)
+	return result
+}
+
+func AllCategoriesMap() map[string]Category {
+	result := make(map[string]Category)
+	for _, c := range allCategories {
+		result[strings.ToLower(string(c))] = c
+	}
 	return result
 }

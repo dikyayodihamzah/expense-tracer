@@ -1,4 +1,4 @@
-package repository
+package vision
 
 import (
 	"context"
@@ -10,21 +10,18 @@ import (
 	"github.com/dikyayodihamzah/expense-tracer/internal/model"
 )
 
-// openAIVision implements VisionProvider using the OpenAI GPT-4o vision API.
-type openAIVision struct {
+type openAIProvider struct {
 	client *openai.Client
 }
 
-// newOpenAIVision creates a new OpenAI vision provider.
-func newOpenAIVision(apiKey string) (VisionProvider, error) {
+func newOpenAI(apiKey string) (Provider, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("openai API key is required for OpenAI vision provider")
 	}
-	return &openAIVision{client: openai.NewClient(apiKey)}, nil
+	return &openAIProvider{client: openai.NewClient(apiKey)}, nil
 }
 
-// ExtractExpense sends the image to GPT-4o and parses the response as an Expense.
-func (ov *openAIVision) ExtractExpense(ctx context.Context, imageData []byte) (*model.Expense, error) {
+func (ov *openAIProvider) ExtractExpense(ctx context.Context, imageData []byte) (*model.Expense, error) {
 	encoded := base64.StdEncoding.EncodeToString(imageData)
 	dataURL := "data:image/jpeg;base64," + encoded
 
@@ -43,7 +40,7 @@ func (ov *openAIVision) ExtractExpense(ctx context.Context, imageData []byte) (*
 					},
 					{
 						Type: openai.ChatMessagePartTypeText,
-						Text: visionPrompt,
+						Text: prompt,
 					},
 				},
 			},
@@ -63,5 +60,5 @@ func (ov *openAIVision) ExtractExpense(ctx context.Context, imageData []byte) (*
 		return nil, fmt.Errorf("openai vision returned no text in first choice")
 	}
 
-	return ParseVisionJSON([]byte(text))
+	return ParseJSON([]byte(text))
 }

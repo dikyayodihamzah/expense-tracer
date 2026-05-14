@@ -1,15 +1,15 @@
-package repository_test
+package vision_test
 
 import (
 	"testing"
 
 	"github.com/dikyayodihamzah/expense-tracer/internal/model"
-	"github.com/dikyayodihamzah/expense-tracer/internal/repository"
+	"github.com/dikyayodihamzah/expense-tracer/internal/vision"
 )
 
-func TestParseVisionJSON_ValidResponse(t *testing.T) {
+func TestParseJSON_ValidResponse(t *testing.T) {
 	raw := `{"date":"14/05/2026","category":"Food","description":"lunch at warung","nominal":35000}`
-	e, err := repository.ParseVisionJSON([]byte(raw))
+	e, err := vision.ParseJSON([]byte(raw))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -24,9 +24,9 @@ func TestParseVisionJSON_ValidResponse(t *testing.T) {
 	}
 }
 
-func TestParseVisionJSON_UnknownCategoryFallsToOthers(t *testing.T) {
+func TestParseJSON_UnknownCategoryFallsToOthers(t *testing.T) {
 	raw := `{"date":"14/05/2026","category":"Groceries","description":"supermarket","nominal":120000}`
-	e, err := repository.ParseVisionJSON([]byte(raw))
+	e, err := vision.ParseJSON([]byte(raw))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -35,8 +35,8 @@ func TestParseVisionJSON_UnknownCategoryFallsToOthers(t *testing.T) {
 	}
 }
 
-func TestParseVisionJSON_InvalidJSON(t *testing.T) {
-	_, err := repository.ParseVisionJSON([]byte("not json"))
+func TestParseJSON_InvalidJSON(t *testing.T) {
+	_, err := vision.ParseJSON([]byte("not json"))
 	if err == nil {
 		t.Error("expected error for invalid JSON")
 	}

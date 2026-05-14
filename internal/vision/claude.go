@@ -1,4 +1,4 @@
-package repository
+package vision
 
 import (
 	"context"
@@ -12,13 +12,11 @@ import (
 	"github.com/dikyayodihamzah/expense-tracer/internal/model"
 )
 
-// claudeVision implements VisionProvider using the Anthropic Claude API.
-type claudeVision struct {
+type claudeProvider struct {
 	client *anthropic.Client
 }
 
-// newClaudeVision creates a new Claude vision provider.
-func newClaudeVision(apiKey string) (VisionProvider, error) {
+func newClaude(apiKey string) (Provider, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("anthropic API key is required for Claude vision provider")
 	}
@@ -26,11 +24,10 @@ func newClaudeVision(apiKey string) (VisionProvider, error) {
 		option.WithAPIKey(apiKey),
 		option.WithHTTPClient(&http.Client{}),
 	)
-	return &claudeVision{client: &c}, nil
+	return &claudeProvider{client: &c}, nil
 }
 
-// ExtractExpense sends the image to Claude and parses the response as an Expense.
-func (cv *claudeVision) ExtractExpense(ctx context.Context, imageData []byte) (*model.Expense, error) {
+func (cv *claudeProvider) ExtractExpense(ctx context.Context, imageData []byte) (*model.Expense, error) {
 	encoded := base64.StdEncoding.EncodeToString(imageData)
 
 	msg, err := cv.client.Messages.New(ctx, anthropic.MessageNewParams{
@@ -39,7 +36,7 @@ func (cv *claudeVision) ExtractExpense(ctx context.Context, imageData []byte) (*
 		Messages: []anthropic.MessageParam{
 			anthropic.NewUserMessage(
 				anthropic.NewImageBlockBase64("image/jpeg", encoded),
-				anthropic.NewTextBlock(visionPrompt),
+				anthropic.NewTextBlock(prompt),
 			),
 		},
 	})
@@ -51,11 +48,10 @@ func (cv *claudeVision) ExtractExpense(ctx context.Context, imageData []byte) (*
 		return nil, fmt.Errorf("claude vision returned empty response")
 	}
 
-	// Extract text from the first content block
 	text := msg.Content[0].Text
 	if text == "" {
 		return nil, fmt.Errorf("claude vision returned no text in first content block")
 	}
 
-	return ParseVisionJSON([]byte(text))
+	return ParseJSON([]byte(text))
 }
