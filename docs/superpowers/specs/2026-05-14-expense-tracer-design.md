@@ -15,20 +15,24 @@ A Go backend service that acts as a personal expense tracker. Users submit expen
 
 ## Architecture
 
-Single long-running Go binary. Telegram updates are received via **polling** (no public IP or webhook required). Two outbound integrations: Google Sheets API and an AI vision provider.
+Single long-running Go binary. Two concurrent goroutines: Telegram polling loop and a Fiber HTTP server. Two outbound integrations: Google Sheets API and an AI vision provider.
 
 ```
-Telegram (polling)
-       │
-       ▼
-┌─────────────────────────────────┐
-│           Go Backend            │
-│                                 │
-│  controller/ → service/ → repository/  │
-│                                 │
-│  repository/vision.go           │  ──▶  Vision API (Claude / OpenAI / GCloud)
-│  repository/sheets.go           │  ──▶  Google Sheets API v4
-└─────────────────────────────────┘
+Telegram (polling)         HTTP client (health check)
+       │                          │
+       ▼                          ▼
+┌──────────────────────────────────────────┐
+│              Go Backend                  │
+│                                          │
+│  [goroutine 1] Telegram polling loop     │
+│  [goroutine 2] Fiber HTTP server         │
+│                GET /health               │
+│                                          │
+│  controller/ → service/ → repository/   │
+│                                          │
+│  repository/vision.go  ──▶  Vision API  │
+│  repository/sheets.go  ──▶  Google Sheets API v4
+└──────────────────────────────────────────┘
 ```
 
 **Layered architecture:**
@@ -37,10 +41,11 @@ Telegram (polling)
 expense-tracer/
 ├── cmd/
 │   └── bot/
-│       └── main.go              # entry point, dependency wiring
+│       └── main.go              # entry point, dependency wiring, goroutine management
 ├── internal/
 │   ├── controller/
-│   │   └── telegram.go          # routes Telegram updates, calls service
+│   │   ├── telegram.go          # routes Telegram updates, calls service
+│   │   └── health.go            # GET /health handler (Fiber)
 │   ├── service/
 │   │   └── expense.go           # business logic: parse, validate, format
 │   ├── repository/
@@ -182,6 +187,9 @@ GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
 # Spreadsheet
 SPREADSHEET_ID=1RHkpTQjCED28_gRc4MbGDQOI09QRgc913l2xD7aXPHI
 SHEET_NAME=Transaction 2026
+
+# HTTP server (Fiber)
+PORT=8080
 ```
 
 ---
@@ -190,6 +198,7 @@ SHEET_NAME=Transaction 2026
 
 - Local machine, runs as a long-running process
 - Telegram polling (no webhook, no public IP required)
+- Fiber HTTP server runs on `PORT` (default `8080`) for health checks: `GET /health → 200 OK`
 - Recommended: run via `systemd` user service or `screen`/`tmux` session
 - Build: `make build` → single binary, no external runtime dependencies
 
