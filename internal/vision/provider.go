@@ -85,7 +85,9 @@ func New(provider, anthropicKey, openaiKey string, googleTS oauth2.TokenSource) 
 		return newOpenAI(openaiKey)
 	case "gcloud":
 		return newGCloud(googleTS)
+	case "claude-cli":
+		return newClaudeCLI()
 	default:
-		return nil, fmt.Errorf("unknown VISION_PROVIDER: %q (valid: claude, openai, gcloud)", provider)
+		return nil, fmt.Errorf("unknown VISION_PROVIDER: %q (valid: claude, claude-cli, openai, gcloud)", provider)
 	}
 }

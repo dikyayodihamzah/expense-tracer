@@ -33,11 +33,12 @@ A Telegram bot that logs personal expenses to Google Sheets. Send a receipt phot
 
 ## Vision Providers
 
-Set `VISION_PROVIDER` to one of the following, or leave it unset for auto-detection (first available key wins):
+Set `VISION_PROVIDER` to one of the following, or leave it unset for auto-detection (first available key wins; `claude-cli` is never auto-selected):
 
 | Value | Provider | Key required |
 |---|---|---|
 | `claude` | Anthropic Claude | `ANTHROPIC_API_KEY` |
+| `claude-cli` | Local `claude` CLI (Claude subscription) | `claude` on `PATH`, logged in |
 | `openai` | OpenAI GPT-4o | `OPENAI_API_KEY` |
 | `gcloud` | Google Cloud Vision | OAuth2 credentials |
 
@@ -47,7 +48,7 @@ Set `VISION_PROVIDER` to one of the following, or leave it unset for auto-detect
 - A Telegram bot token ([BotFather](https://t.me/BotFather))
 - A Google Sheets spreadsheet
 - A Google Cloud OAuth2 Desktop App credentials file
-- At least one vision provider key
+- At least one vision provider key, or the `claude` CLI logged in to a subscription (`VISION_PROVIDER=claude-cli`)
 
 ## Setup
 
@@ -89,7 +90,7 @@ The bot expects two sheets:
 | `TELEGRAM_BOT_TOKEN` | yes | — | Bot token from BotFather |
 | `GOOGLE_CREDENTIALS_FILE` | yes | — | Path to OAuth2 credentials JSON |
 | `SPREADSHEET_ID` | yes | — | Google Sheets spreadsheet ID |
-| `VISION_PROVIDER` | no | auto | `claude`, `openai`, or `gcloud` |
+| `VISION_PROVIDER` | no | auto | `claude`, `claude-cli`, `openai`, or `gcloud` |
 | `ANTHROPIC_API_KEY` | if claude | — | Anthropic API key |
 | `OPENAI_API_KEY` | if openai | — | OpenAI API key |
 | `GOOGLE_TOKEN_FILE` | no | `token.json` | Path to save/load OAuth2 token |
