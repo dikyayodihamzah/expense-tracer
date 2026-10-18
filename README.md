@@ -15,7 +15,7 @@ A Telegram bot that logs personal expenses to Google Sheets. Send a receipt phot
 
 | Command | Description |
 |---|---|
-| `/add <description> <nominal> <category>` | Log an expense manually |
+| `/add <description> <nominal> <category> [DD/MM/YYYY]` | Log an expense manually; omit the date for today |
 | `/today` | Show today's expenses and total |
 | `/summary` | Show this month's category breakdown |
 | `/budget` | Show cumulative budget progress for today |
@@ -25,6 +25,7 @@ A Telegram bot that logs personal expenses to Google Sheets. Send a receipt phot
 **Example:**
 ```
 /add makan siang 35000 Food
+/add makan siang 35000 Food 17/10/2026
 ```
 
 ## Supported Categories

@@ -1,6 +1,7 @@
 package expense_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -201,5 +202,35 @@ func TestFormatBudget_ShortRow(t *testing.T) {
 	out := expense.FormatBudget(rows, now)
 	if !containsStr(out, "No budget data found") {
 		t.Errorf("expected no match message for short row, got: %s", out)
+	}
+}
+
+func TestParseAddCommand_WithDate(t *testing.T) {
+	tests := []struct {
+		name, in, wantDate, wantErr string
+	}{
+		{name: "no date means empty", in: "makan siang 35000 Food", wantDate: ""},
+		{name: "full date", in: "makan siang 35000 Food 17/10/2026", wantDate: "17/10/2026"},
+		{name: "single digit day and month", in: "makan siang 35000 Food 3/9/2026", wantDate: "03/09/2026"},
+		{name: "impossible date", in: "makan siang 35000 Food 31/02/2026", wantErr: "invalid date"},
+		{name: "malformed date", in: "makan siang 35000 Food 17/10", wantErr: "invalid date"},
+		{name: "date but missing args", in: "makan 17/10/2026", wantErr: "usage"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e, err := expense.ParseAddCommand(tt.in)
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("want error containing %q, got %v", tt.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if e.Date != tt.wantDate || e.Description != "makan siang" || e.Nominal != 35000 {
+				t.Errorf("unexpected expense: %+v", e)
+			}
+		})
 	}
 }
