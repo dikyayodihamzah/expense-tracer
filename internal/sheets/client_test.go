@@ -142,19 +142,74 @@ func TestReadMonthlyExpense_Error(t *testing.T) {
 	}
 }
 
-func TestAppendExpense(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, map[string]any{"spreadsheetId": "test-id"})
-	})
-	c, _ := sheets.New(context.Background(), mockClient(handler), "test-id", "Sheet1")
-	e := &model.Expense{Date: "14/05/2026", Month: "May", Category: model.CategoryFood, Description: "lunch", Nominal: 35000}
-	if err := c.AppendExpense(context.Background(), e); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+func TestNextRowRange(t *testing.T) {
+	tests := []struct {
+		name       string
+		used, cols int
+		want       string
+	}{
+		{"empty sheet", 0, 6, "Sheet1!A1:F1"},
+		{"header only", 1, 6, "Sheet1!A2:F2"},
+		{"past table end", 985, 6, "Sheet1!A986:F986"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := sheets.NextRowRange("Sheet1", tt.used, tt.cols); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
-func TestAppendExpense_Error(t *testing.T) {
+// Regression: every append must target the row after the last used row, not a fixed row.
+func TestAppendExpense_WritesBelowLastRow(t *testing.T) {
+	used := 985
+	var putPaths []string
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			vals := make([]any, used)
+			for i := range vals {
+				vals[i] = []any{"x"}
+			}
+			writeJSON(w, map[string]any{"values": vals})
+		case http.MethodPut:
+			putPaths = append(putPaths, r.URL.Path)
+			used++ // the row we just wrote is now used
+			writeJSON(w, map[string]any{"spreadsheetId": "test-id"})
+		}
+	})
+	c, _ := sheets.New(context.Background(), mockClient(handler), "test-id", "Sheet1")
+	e := &model.Expense{Date: "14/05/2026", Month: "May", Category: model.CategoryFood, Description: "lunch", Nominal: 35000}
+	for i := 0; i < 2; i++ {
+		if err := c.AppendExpense(context.Background(), e); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+	if len(putPaths) != 2 || !strings.HasSuffix(putPaths[0], "A986:F986") {
+		t.Fatalf("first write should go to row 986, got %v", putPaths)
+	}
+	if !strings.HasSuffix(putPaths[1], "A987:F987") {
+		t.Errorf("second write should go to row 987, got %v", putPaths[1])
+	}
+}
+
+func TestAppendExpense_ReadError(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { errResponse(w) })
+	c, _ := sheets.New(context.Background(), mockClient(handler), "test-id", "Sheet1")
+	if err := c.AppendExpense(context.Background(), &model.Expense{}); err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestAppendExpense_WriteError(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			writeJSON(w, map[string]any{"values": []any{[]any{"Timestamp"}}})
+			return
+		}
+		errResponse(w)
+	})
 	c, _ := sheets.New(context.Background(), mockClient(handler), "test-id", "Sheet1")
 	if err := c.AppendExpense(context.Background(), &model.Expense{}); err == nil {
 		t.Error("expected error")
