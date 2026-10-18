@@ -52,11 +52,14 @@ const prompt = `You are an expense extraction assistant.
 Analyze this receipt or bank transaction image and extract the expense details.
 Return ONLY a valid JSON object with these exact keys:
 {
-  "date": "DD/MM/YYYY",
+  "date": "DD/MM/YYYY, the transaction date printed on the image, never today's date",
   "category": "one of: Food, Personal Care, Transportation, Shopping, Entertainment and Leisure, Donation, Orthodental, Investment, Others",
   "description": "merchant name or short description",
   "nominal": <integer amount in IDR, no currency symbol>
 }
+Date rules: convert whatever format is printed (e.g. "17 Okt 2026", "17-10-26", "2026-10-17 18:42") to DD/MM/YYYY.
+The day always comes before the month. Always output a 4-digit year; a 2-digit year means 20YY.
+If no transaction date is visible, use an empty string for "date".
 Do not include any text outside the JSON object.`
 
 // New creates a Provider based on the VISION_PROVIDER env value.
