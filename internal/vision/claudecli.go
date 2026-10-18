@@ -48,6 +48,10 @@ func (claudeCLIProvider) ExtractExpense(ctx context.Context, imageData []byte) (
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
+		// Auth and rate-limit failures exit 1 but still print a JSON envelope on stdout.
+		if _, perr := parseCLIOutput(out); perr != nil && len(out) > 0 {
+			return nil, fmt.Errorf("claude CLI: %w: %v", err, perr)
+		}
 		return nil, fmt.Errorf("claude CLI: %w", err)
 	}
 	return parseCLIOutput(out)

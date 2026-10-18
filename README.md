@@ -109,3 +109,18 @@ make build
 # Tests
 make test
 ```
+
+## Docker
+
+The Google login is interactive, so do it once on your machine and let the container reuse the saved token:
+
+1. Run the bot locally once (`make run`) and complete the Google login. This creates `token.json`.
+2. For `VISION_PROVIDER=claude-cli`, run `claude setup-token` on your machine and put the result in `.env` as `CLAUDE_CODE_OAUTH_TOKEN=...`.
+3. Keep `GOOGLE_CREDENTIALS_FILE` and `GOOGLE_TOKEN_FILE` in `.env` pointing at the host files; compose mounts them read-only into the container.
+4. Start it:
+   ```bash
+   docker compose up -d --build
+   docker compose logs -f
+   ```
+
+Only run one instance per bot token (stop the local one first), or Telegram will reject the second poller.
