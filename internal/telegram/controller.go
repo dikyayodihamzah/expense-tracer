@@ -113,7 +113,7 @@ func (tc *Controller) handlePhoto(ctx context.Context, msg *tgbotapi.Message) {
 
 func (tc *Controller) handleAdd(ctx context.Context, chatID int64, args string) {
 	if strings.TrimSpace(args) == "" {
-		tc.reply(chatID, "Usage: /add <description> <nominal> <category>\nExample: /add makan siang 35000 Food")
+		tc.reply(chatID, "Usage: /add <description> <nominal> <category> [DD/MM/YYYY]\nExample: /add makan siang 35000 Food\nWith date: /add makan siang 35000 Food 17/10/2026 (no date = today)")
 		return
 	}
 

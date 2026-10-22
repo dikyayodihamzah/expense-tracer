@@ -10,11 +10,24 @@ import (
 	"github.com/dikyayodihamzah/expense-tracer/internal/pkg/utils"
 )
 
-// ParseAddCommand parses "/add <description> <nominal> <category>" args.
+// ParseAddCommand parses "/add <description> <nominal> <category> [DD/MM/YYYY]" args.
+// A trailing date is optional; without it Date stays empty and means today.
 func ParseAddCommand(args string) (*model.Expense, error) {
+	const usage = "usage: /add <description> <nominal> <category> [DD/MM/YYYY]"
 	parts := strings.Fields(args)
+
+	var date string
+	// No category or nominal contains "/", so a trailing "/" token is the date.
+	if n := len(parts); n > 0 && strings.Contains(parts[n-1], "/") {
+		t, err := time.Parse("2/1/2006", parts[n-1])
+		if err != nil {
+			return nil, fmt.Errorf("invalid date %q (expected DD/MM/YYYY)", parts[n-1])
+		}
+		date = t.Format("02/01/2006")
+		parts = parts[:n-1]
+	}
 	if len(parts) < 3 {
-		return nil, fmt.Errorf("usage: /add <description> <nominal> <category>")
+		return nil, fmt.Errorf(usage)
 	}
 
 	categoryStr := parts[len(parts)-1]
@@ -27,6 +40,7 @@ func ParseAddCommand(args string) (*model.Expense, error) {
 	}
 
 	return &model.Expense{
+		Date:        date,
 		Description: description,
 		Nominal:     nominal,
 		Category:    model.MatchCategory(categoryStr),

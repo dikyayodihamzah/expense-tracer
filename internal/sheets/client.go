@@ -44,19 +44,39 @@ func BuildRow(e *model.Expense, now time.Time) []any {
 	}
 }
 
+// AppendExpense writes the row directly under the last non-empty cell of column A.
+// values.append is avoided on purpose: when the sheet holds a Google Sheets table,
+// it anchors to the table's declared end instead of the last data row, so after the
+// table is full every new entry lands on the same row.
 func (c *Client) AppendExpense(ctx context.Context, e *model.Expense) error {
+	resp, err := c.svc.Spreadsheets.Values.
+		Get(c.spreadsheetID, c.sheetName+"!A:A").
+		Context(ctx).
+		Do()
+	if err != nil {
+		return fmt.Errorf("find next row: %w", err)
+	}
+
 	row := BuildRow(e, time.Now())
 	vr := &sheetsapi.ValueRange{
 		Values: [][]any{row},
 	}
 	if _, err := c.svc.Spreadsheets.Values.
-		Append(c.spreadsheetID, c.sheetName, vr).
+		Update(c.spreadsheetID, NextRowRange(c.sheetName, len(resp.Values), len(row)), vr).
 		ValueInputOption("USER_ENTERED").
 		Context(ctx).
 		Do(); err != nil {
-		return fmt.Errorf("append row: %w", err)
+		return fmt.Errorf("write row: %w", err)
 	}
 	return nil
+}
+
+// NextRowRange returns the A1 range for the row after usedRows rows, spanning cols columns (max 26).
+// Exported for unit testing without a live Sheets connection.
+func NextRowRange(sheetName string, usedRows, cols int) string {
+	next := usedRows + 1
+	last := string(rune('A' + cols - 1))
+	return fmt.Sprintf("%s!A%d:%s%d", sheetName, next, last, next)
 }
 
 func (c *Client) DeleteLastRow(ctx context.Context) error {
