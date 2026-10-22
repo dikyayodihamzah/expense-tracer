@@ -23,7 +23,7 @@ type Controller struct {
 	vision vision.Provider
 
 	mu             sync.Mutex
-	pendingExpense map[int64]*model.Expense
+	pendingExpense map[int64][]*model.Expense
 }
 
 func New(bot *tgbotapi.BotAPI, sc *sheets.Client, vp vision.Provider) *Controller {
@@ -31,7 +31,7 @@ func New(bot *tgbotapi.BotAPI, sc *sheets.Client, vp vision.Provider) *Controlle
 		bot:            bot,
 		sheets:         sc,
 		vision:         vp,
-		pendingExpense: make(map[int64]*model.Expense),
+		pendingExpense: make(map[int64][]*model.Expense),
 	}
 }
 
@@ -92,23 +92,25 @@ func (tc *Controller) handlePhoto(ctx context.Context, msg *tgbotapi.Message) {
 		return
 	}
 
-	e, err := tc.vision.ExtractExpense(ctx, imageData)
+	es, err := tc.vision.ExtractExpenses(ctx, imageData)
 	if err != nil {
 		log.Printf("[handlePhoto] chatID=%d: extract expense: %v", chatID, err)
 		tc.reply(chatID, "❌ Failed to analyze image: "+err.Error())
 		return
 	}
 
-	if err := expense.FillExpenseMeta(e, time.Now()); err != nil {
-		log.Printf("[handlePhoto] chatID=%d: fill expense meta: %v", chatID, err)
-		tc.reply(chatID, "❌ Invalid date in parsed expense: "+err.Error())
-		return
+	for _, e := range es {
+		if err := expense.FillExpenseMeta(e, time.Now()); err != nil {
+			log.Printf("[handlePhoto] chatID=%d: fill expense meta: %v", chatID, err)
+			tc.reply(chatID, "❌ Invalid date in parsed expense: "+err.Error())
+			return
+		}
 	}
 
 	tc.mu.Lock()
-	tc.pendingExpense[chatID] = e
+	tc.pendingExpense[chatID] = es
 	tc.mu.Unlock()
-	tc.sendConfirmation(chatID, e)
+	tc.sendConfirmation(chatID, es)
 }
 
 func (tc *Controller) handleAdd(ctx context.Context, chatID int64, args string) {
@@ -130,10 +132,11 @@ func (tc *Controller) handleAdd(ctx context.Context, chatID int64, args string) 
 		return
 	}
 
+	es := []*model.Expense{e}
 	tc.mu.Lock()
-	tc.pendingExpense[chatID] = e
+	tc.pendingExpense[chatID] = es
 	tc.mu.Unlock()
-	tc.sendConfirmation(chatID, e)
+	tc.sendConfirmation(chatID, es)
 }
 
 func (tc *Controller) handleDelete(ctx context.Context, chatID int64) {
@@ -184,7 +187,7 @@ func (tc *Controller) handleCallback(ctx context.Context, cb *tgbotapi.CallbackQ
 	}
 
 	tc.mu.Lock()
-	e, ok := tc.pendingExpense[chatID]
+	es, ok := tc.pendingExpense[chatID]
 	if ok {
 		delete(tc.pendingExpense, chatID)
 	}
@@ -197,20 +200,26 @@ func (tc *Controller) handleCallback(ctx context.Context, cb *tgbotapi.CallbackQ
 
 	switch cb.Data {
 	case "confirm":
-		if err := tc.sheets.AppendExpense(ctx, e); err != nil {
-			log.Printf("[handleCallback] chatID=%d: append expense: %v", chatID, err)
-			tc.reply(chatID, "❌ Failed to save: "+err.Error())
-			return
+		for i, e := range es {
+			if err := tc.sheets.AppendExpense(ctx, e); err != nil {
+				log.Printf("[handleCallback] chatID=%d: append expense: %v", chatID, err)
+				// Keep the unsaved ones so tapping Save again retries only those.
+				tc.mu.Lock()
+				tc.pendingExpense[chatID] = es[i:]
+				tc.mu.Unlock()
+				tc.reply(chatID, fmt.Sprintf("❌ Failed to save %q (%d of %d saved): %v", e.Description, i, len(es), err))
+				return
+			}
 		}
-		tc.reply(chatID, fmt.Sprintf("✅ Saved: %s — Rp %s", e.Description, utils.FormatNominal(e.Nominal)))
+		tc.reply(chatID, expense.FormatSaved(es))
 
 	case "cancel":
 		tc.reply(chatID, "❌ Cancelled.")
 	}
 }
 
-func (tc *Controller) sendConfirmation(chatID int64, e *model.Expense) {
-	text := expense.FormatConfirmation(e)
+func (tc *Controller) sendConfirmation(chatID int64, es []*model.Expense) {
+	text := expense.FormatConfirmations(es)
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("✓ Save", "confirm"),

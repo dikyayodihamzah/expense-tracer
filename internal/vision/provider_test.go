@@ -7,31 +7,71 @@ import (
 	"github.com/dikyayodihamzah/expense-tracer/internal/vision"
 )
 
-func TestParseJSON_ValidResponse(t *testing.T) {
-	raw := `{"date":"14/05/2026","category":"Food","description":"lunch at warung","nominal":35000}`
-	e, err := vision.ParseJSON([]byte(raw))
+func TestParseJSON_SingleExpense(t *testing.T) {
+	raw := `{"date":"14/05/2026","expenses":[{"category":"Food","description":"lunch at warung","nominal":35000}]}`
+	es, err := vision.ParseJSON([]byte(raw))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if e.Date != "14/05/2026" {
-		t.Errorf("date mismatch: %v", e.Date)
+	if len(es) != 1 {
+		t.Fatalf("expected 1 expense, got %d", len(es))
 	}
-	if e.Category != model.CategoryFood {
-		t.Errorf("category mismatch: %v", e.Category)
+	e := es[0]
+	if e.Date != "14/05/2026" || e.Category != model.CategoryFood || e.Nominal != 35000 || e.Description != "lunch at warung" {
+		t.Errorf("unexpected expense: %+v", e)
 	}
-	if e.Nominal != 35000 {
-		t.Errorf("nominal mismatch: %v", e.Nominal)
+}
+
+func TestParseJSON_MultipleCategoriesShareDate(t *testing.T) {
+	raw := `{"date":"14/05/2026","expenses":[
+		{"category":"Food","description":"Indomaret: peanut, milk","nominal":25000},
+		{"category":"Shopping","description":"Indomaret: detergent","nominal":20000}]}`
+	es, err := vision.ParseJSON([]byte(raw))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(es) != 2 {
+		t.Fatalf("expected 2 expenses, got %d", len(es))
+	}
+	if es[0].Category != model.CategoryFood || es[1].Category != model.CategoryShopping {
+		t.Errorf("categories: %v, %v", es[0].Category, es[1].Category)
+	}
+	if es[0].Date != "14/05/2026" || es[1].Date != "14/05/2026" {
+		t.Errorf("dates not shared: %v, %v", es[0].Date, es[1].Date)
+	}
+}
+
+func TestParseJSON_DropsNonPositiveNominal(t *testing.T) {
+	raw := `{"date":"14/05/2026","expenses":[{"category":"Food","description":"free sample","nominal":0},{"category":"Shopping","description":"soap","nominal":9000}]}`
+	es, err := vision.ParseJSON([]byte(raw))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(es) != 1 || es[0].Category != model.CategoryShopping {
+		t.Errorf("expected only the Shopping entry, got %+v", es)
+	}
+}
+
+func TestParseJSON_NoUsableExpense(t *testing.T) {
+	for name, raw := range map[string]string{
+		"empty list":   `{"date":"14/05/2026","expenses":[]}`,
+		"zero nominal": `{"date":"14/05/2026","expenses":[{"category":"Food","description":"ERROR: empty image","nominal":0}]}`,
+		"old shape":    `{"date":"14/05/2026","category":"Food","description":"lunch","nominal":35000}`,
+	} {
+		if _, err := vision.ParseJSON([]byte(raw)); err == nil {
+			t.Errorf("%s: expected error", name)
+		}
 	}
 }
 
 func TestParseJSON_UnknownCategoryFallsToOthers(t *testing.T) {
-	raw := `{"date":"14/05/2026","category":"Groceries","description":"supermarket","nominal":120000}`
-	e, err := vision.ParseJSON([]byte(raw))
+	raw := `{"date":"14/05/2026","expenses":[{"category":"Groceries","description":"supermarket","nominal":120000}]}`
+	es, err := vision.ParseJSON([]byte(raw))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if e.Category != model.CategoryOthers {
-		t.Errorf("expected Others, got %v", e.Category)
+	if es[0].Category != model.CategoryOthers {
+		t.Errorf("expected Others, got %v", es[0].Category)
 	}
 }
 
@@ -43,13 +83,13 @@ func TestParseJSON_InvalidJSON(t *testing.T) {
 }
 
 func TestParseJSON_WithPreamble(t *testing.T) {
-	raw := `Here is the result: {"date":"14/05/2026","category":"Food","description":"lunch","nominal":35000}`
-	e, err := vision.ParseJSON([]byte(raw))
+	raw := `Here is the result: {"date":"14/05/2026","expenses":[{"category":"Food","description":"lunch","nominal":35000}]}`
+	es, err := vision.ParseJSON([]byte(raw))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if e.Nominal != 35000 {
-		t.Errorf("nominal mismatch: %v", e.Nominal)
+	if es[0].Nominal != 35000 {
+		t.Errorf("nominal mismatch: %v", es[0].Nominal)
 	}
 }
 

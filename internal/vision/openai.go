@@ -21,7 +21,7 @@ func newOpenAI(apiKey string) (Provider, error) {
 	return &openAIProvider{client: openai.NewClient(apiKey)}, nil
 }
 
-func (ov *openAIProvider) ExtractExpense(ctx context.Context, imageData []byte) (*model.Expense, error) {
+func (ov *openAIProvider) ExtractExpenses(ctx context.Context, imageData []byte) ([]*model.Expense, error) {
 	encoded := base64.StdEncoding.EncodeToString(imageData)
 	dataURL := "data:image/jpeg;base64," + encoded
 

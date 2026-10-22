@@ -27,7 +27,7 @@ func newClaude(apiKey string) (Provider, error) {
 	return &claudeProvider{client: &c}, nil
 }
 
-func (cv *claudeProvider) ExtractExpense(ctx context.Context, imageData []byte) (*model.Expense, error) {
+func (cv *claudeProvider) ExtractExpenses(ctx context.Context, imageData []byte) ([]*model.Expense, error) {
 	encoded := base64.StdEncoding.EncodeToString(imageData)
 
 	msg, err := cv.client.Messages.New(ctx, anthropic.MessageNewParams{

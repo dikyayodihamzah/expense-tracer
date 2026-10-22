@@ -28,7 +28,7 @@ func newGCloud(ts oauth2.TokenSource) (*gcloudProvider, error) {
 	return &gcloudProvider{client: client}, nil
 }
 
-func (g *gcloudProvider) ExtractExpense(ctx context.Context, imageData []byte) (*model.Expense, error) {
+func (g *gcloudProvider) ExtractExpenses(ctx context.Context, imageData []byte) ([]*model.Expense, error) {
 	req := &visionpb.BatchAnnotateImagesRequest{
 		Requests: []*visionpb.AnnotateImageRequest{
 			{
@@ -54,8 +54,8 @@ func (g *gcloudProvider) ExtractExpense(ctx context.Context, imageData []byte) (
 		return nil, fmt.Errorf("gcloud vision returned no text annotation")
 	}
 
-	return &model.Expense{
+	return []*model.Expense{{
 		Description: annotation.GetText(),
 		Category:    model.CategoryOthers,
-	}, nil
+	}}, nil
 }

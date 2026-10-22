@@ -80,6 +80,35 @@ func FormatConfirmation(e *model.Expense) string {
 	)
 }
 
+// FormatConfirmations formats one or more parsed expenses (same date) for user confirmation.
+func FormatConfirmations(es []*model.Expense) string {
+	if len(es) == 1 {
+		return FormatConfirmation(es[0])
+	}
+	var lines []string
+	var total int64
+	for i, e := range es {
+		total += e.Nominal
+		lines = append(lines, fmt.Sprintf("%d. 🗂 %s — %s — Rp %s", i+1, e.Category, e.Description, utils.FormatNominal(e.Nominal)))
+	}
+	return fmt.Sprintf(
+		"📋 *Expense Details*\n\n📅 Date: %s\n%s\n\n💰 Total: Rp %s\n\nSave these %d expenses?",
+		es[0].Date, strings.Join(lines, "\n"), utils.FormatNominal(total), len(es),
+	)
+}
+
+// FormatSaved formats the confirmation sent after expenses were written to the sheet.
+func FormatSaved(es []*model.Expense) string {
+	if len(es) == 1 {
+		return fmt.Sprintf("✅ Saved: %s — Rp %s", es[0].Description, utils.FormatNominal(es[0].Nominal))
+	}
+	var total int64
+	for _, e := range es {
+		total += e.Nominal
+	}
+	return fmt.Sprintf("✅ Saved %d expenses — Rp %s", len(es), utils.FormatNominal(total))
+}
+
 // FormatToday formats today's expenses as a message.
 func FormatToday(rows [][]any, today string) string {
 	var lines []string
