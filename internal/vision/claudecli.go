@@ -25,7 +25,7 @@ func newClaudeCLI() (Provider, error) {
 	return &claudeCLIProvider{}, nil
 }
 
-func (claudeCLIProvider) ExtractExpense(ctx context.Context, imageData []byte) (*model.Expense, error) {
+func (claudeCLIProvider) ExtractExpenses(ctx context.Context, imageData []byte) ([]*model.Expense, error) {
 	// A fresh empty dir is both the CLI's cwd (no project settings picked up)
 	// and the only place its Read tool needs to reach.
 	dir, err := os.MkdirTemp("", "expense-claude-")
@@ -43,7 +43,7 @@ func (claudeCLIProvider) ExtractExpense(ctx context.Context, imageData []byte) (
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "claude", "-p",
-		"Read the image at "+img+" and extract the expense.\n"+prompt,
+		"Read the image at "+img+" and extract the expenses.\n"+prompt,
 		"--output-format", "json", "--allowedTools", "Read")
 	cmd.Dir = dir
 	out, err := cmd.Output()
@@ -58,7 +58,7 @@ func (claudeCLIProvider) ExtractExpense(ctx context.Context, imageData []byte) (
 }
 
 // parseCLIOutput unwraps the `claude -p --output-format json` envelope.
-func parseCLIOutput(out []byte) (*model.Expense, error) {
+func parseCLIOutput(out []byte) ([]*model.Expense, error) {
 	var env struct {
 		IsError bool   `json:"is_error"`
 		Result  string `json:"result"`

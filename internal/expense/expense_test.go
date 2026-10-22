@@ -234,3 +234,32 @@ func TestParseAddCommand_WithDate(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatConfirmations(t *testing.T) {
+	one := []*model.Expense{{Date: "14/05/2026", Category: model.CategoryFood, Description: "lunch", Nominal: 35000}}
+	if out := expense.FormatConfirmations(one); out != expense.FormatConfirmation(one[0]) {
+		t.Errorf("single expense should use the single format, got: %s", out)
+	}
+
+	many := []*model.Expense{
+		{Date: "14/05/2026", Category: model.CategoryFood, Description: "Indomaret: peanut, milk", Nominal: 25000},
+		{Date: "14/05/2026", Category: model.CategoryShopping, Description: "Indomaret: detergent", Nominal: 20000},
+	}
+	out := expense.FormatConfirmations(many)
+	for _, want := range []string{"14/05/2026", "1. ", "Food", "peanut, milk", "2. ", "Shopping", "detergent", "Total: Rp 45.000", "Save these 2 expenses?"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("expected %q in output, got: %s", want, out)
+		}
+	}
+}
+
+func TestFormatSaved(t *testing.T) {
+	one := []*model.Expense{{Description: "lunch", Nominal: 35000}}
+	if out := expense.FormatSaved(one); !strings.Contains(out, "lunch") || !strings.Contains(out, "35.000") {
+		t.Errorf("single: %s", out)
+	}
+	many := []*model.Expense{{Nominal: 25000}, {Nominal: 20000}}
+	if out := expense.FormatSaved(many); !strings.Contains(out, "2 expenses") || !strings.Contains(out, "45.000") {
+		t.Errorf("multi: %s", out)
+	}
+}
