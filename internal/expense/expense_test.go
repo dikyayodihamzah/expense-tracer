@@ -10,7 +10,7 @@ import (
 )
 
 func TestParseAddCommand_AllArgs(t *testing.T) {
-	e, err := expense.ParseAddCommand("makan siang 35000 Food")
+	e, err := expense.ParseAddCommand("makan siang 35000 Eating Out")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -20,8 +20,18 @@ func TestParseAddCommand_AllArgs(t *testing.T) {
 	if e.Nominal != 35000 {
 		t.Errorf("nominal: %v", e.Nominal)
 	}
-	if e.Category != model.CategoryFood {
+	if e.Category != model.CategoryEatingOut {
 		t.Errorf("category: %v", e.Category)
+	}
+}
+
+func TestParseAddCommand_MultiWordCategory(t *testing.T) {
+	e, err := expense.ParseAddCommand("nasi 2 bungkus 20000 Personal Care 17/10/2026")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if e.Description != "nasi 2 bungkus" || e.Nominal != 20000 || e.Category != model.CategoryPersonalCare || e.Date != "17/10/2026" {
+		t.Errorf("got %+v", e)
 	}
 }
 
@@ -33,7 +43,7 @@ func TestParseAddCommand_MissingArgs(t *testing.T) {
 }
 
 func TestParseAddCommand_InvalidNominal(t *testing.T) {
-	_, err := expense.ParseAddCommand("makan abc Food")
+	_, err := expense.ParseAddCommand("makan abc Eating Out")
 	if err == nil {
 		t.Error("expected error for non-numeric nominal")
 	}
@@ -59,8 +69,8 @@ func containsStr(s, sub string) bool {
 
 func TestFormatSummary_GroupsByCategory(t *testing.T) {
 	rows := [][]any{
-		{"ts", "14/05/2026", "May", "Food", "lunch", "35000"},
-		{"ts", "14/05/2026", "May", "Food", "dinner", "50000"},
+		{"ts", "14/05/2026", "May", "Eating Out", "lunch", "35000"},
+		{"ts", "14/05/2026", "May", "Eating Out", "dinner", "50000"},
 		{"ts", "14/05/2026", "May", "Transportation", "grab", "25000"},
 	}
 	out := expense.FormatSummary(rows, "May")
@@ -78,7 +88,7 @@ func TestFormatSummary_Empty(t *testing.T) {
 
 func TestFormatSummary_WrongMonth(t *testing.T) {
 	rows := [][]any{
-		{"ts", "14/04/2026", "April", "Food", "lunch", "35000"},
+		{"ts", "14/04/2026", "April", "Eating Out", "lunch", "35000"},
 		{"ts", "14/04/2026"},
 	}
 	out := expense.FormatSummary(rows, "May")
@@ -136,7 +146,7 @@ func TestMonthFromDate_InvalidDate(t *testing.T) {
 func TestFormatConfirmation(t *testing.T) {
 	e := &model.Expense{
 		Date:        "14/05/2026",
-		Category:    model.CategoryFood,
+		Category:    model.CategoryEatingOut,
 		Description: "lunch",
 		Nominal:     35000,
 	}
@@ -151,9 +161,9 @@ func TestFormatConfirmation(t *testing.T) {
 
 func TestFormatToday_WithData(t *testing.T) {
 	rows := [][]any{
-		{"ts", "14/05/2026", "May", "Food", "lunch", "35000"},
-		{"ts", "14/05/2026", "May", "Food", "dinner", "50000"},
-		{"ts", "13/05/2026", "May", "Food", "breakfast", "20000"},
+		{"ts", "14/05/2026", "May", "Eating Out", "lunch", "35000"},
+		{"ts", "14/05/2026", "May", "Eating Out", "dinner", "50000"},
+		{"ts", "13/05/2026", "May", "Eating Out", "breakfast", "20000"},
 	}
 	out := expense.FormatToday(rows, "14/05/2026")
 	if !containsStr(out, "lunch") {
@@ -166,7 +176,7 @@ func TestFormatToday_WithData(t *testing.T) {
 
 func TestFormatToday_Empty(t *testing.T) {
 	rows := [][]any{
-		{"ts", "13/05/2026", "May", "Food", "lunch", "35000"},
+		{"ts", "13/05/2026", "May", "Eating Out", "lunch", "35000"},
 	}
 	out := expense.FormatToday(rows, "14/05/2026")
 	if !containsStr(out, "No expenses") {
@@ -209,11 +219,11 @@ func TestParseAddCommand_WithDate(t *testing.T) {
 	tests := []struct {
 		name, in, wantDate, wantErr string
 	}{
-		{name: "no date means empty", in: "makan siang 35000 Food", wantDate: ""},
-		{name: "full date", in: "makan siang 35000 Food 17/10/2026", wantDate: "17/10/2026"},
-		{name: "single digit day and month", in: "makan siang 35000 Food 3/9/2026", wantDate: "03/09/2026"},
-		{name: "impossible date", in: "makan siang 35000 Food 31/02/2026", wantErr: "invalid date"},
-		{name: "malformed date", in: "makan siang 35000 Food 17/10", wantErr: "invalid date"},
+		{name: "no date means empty", in: "makan siang 35000 Eating Out", wantDate: ""},
+		{name: "full date", in: "makan siang 35000 Eating Out 17/10/2026", wantDate: "17/10/2026"},
+		{name: "single digit day and month", in: "makan siang 35000 Eating Out 3/9/2026", wantDate: "03/09/2026"},
+		{name: "impossible date", in: "makan siang 35000 Eating Out 31/02/2026", wantErr: "invalid date"},
+		{name: "malformed date", in: "makan siang 35000 Eating Out 17/10", wantErr: "invalid date"},
 		{name: "date but missing args", in: "makan 17/10/2026", wantErr: "usage"},
 	}
 	for _, tt := range tests {
@@ -236,17 +246,17 @@ func TestParseAddCommand_WithDate(t *testing.T) {
 }
 
 func TestFormatConfirmations(t *testing.T) {
-	one := []*model.Expense{{Date: "14/05/2026", Category: model.CategoryFood, Description: "lunch", Nominal: 35000}}
+	one := []*model.Expense{{Date: "14/05/2026", Category: model.CategoryEatingOut, Description: "lunch", Nominal: 35000}}
 	if out := expense.FormatConfirmations(one); out != expense.FormatConfirmation(one[0]) {
 		t.Errorf("single expense should use the single format, got: %s", out)
 	}
 
 	many := []*model.Expense{
-		{Date: "14/05/2026", Category: model.CategoryFood, Description: "Indomaret: peanut, milk", Nominal: 25000},
+		{Date: "14/05/2026", Category: model.CategoryEatingOut, Description: "Indomaret: peanut, milk", Nominal: 25000},
 		{Date: "14/05/2026", Category: model.CategoryShopping, Description: "Indomaret: detergent", Nominal: 20000},
 	}
 	out := expense.FormatConfirmations(many)
-	for _, want := range []string{"14/05/2026", "1. ", "Food", "peanut, milk", "2. ", "Shopping", "detergent", "Total: Rp 45.000", "Save these 2 expenses?"} {
+	for _, want := range []string{"14/05/2026", "1. ", "Eating Out", "peanut, milk", "2. ", "Shopping", "detergent", "Total: Rp 45.000", "Save these 2 expenses?"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("expected %q in output, got: %s", want, out)
 		}

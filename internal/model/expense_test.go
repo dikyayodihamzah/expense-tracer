@@ -7,9 +7,9 @@ import (
 )
 
 func TestMatchCategory_KnownCategory(t *testing.T) {
-	got := model.MatchCategory("Food")
-	if got != model.CategoryFood {
-		t.Errorf("expected %q, got %q", model.CategoryFood, got)
+	got := model.MatchCategory("Eating Out")
+	if got != model.CategoryEatingOut {
+		t.Errorf("expected %q, got %q", model.CategoryEatingOut, got)
 	}
 }
 
@@ -21,9 +21,9 @@ func TestMatchCategory_UnknownFallsToOthers(t *testing.T) {
 }
 
 func TestMatchCategory_CaseInsensitive(t *testing.T) {
-	got := model.MatchCategory("food")
-	if got != model.CategoryFood {
-		t.Errorf("expected %q, got %q", model.CategoryFood, got)
+	got := model.MatchCategory("eating out")
+	if got != model.CategoryEatingOut {
+		t.Errorf("expected %q, got %q", model.CategoryEatingOut, got)
 	}
 }
 
@@ -34,12 +34,12 @@ func TestAllCategories(t *testing.T) {
 	}
 	found := false
 	for _, c := range cats {
-		if c == model.CategoryFood {
+		if c == model.CategoryEatingOut {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("expected Food in AllCategories")
+		t.Error("expected Eating Out in AllCategories")
 	}
 }

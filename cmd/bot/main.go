@@ -27,10 +27,6 @@ func main() {
 	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
 	openaiKey := os.Getenv("OPENAI_API_KEY")
 	googleCreds := utils.MustEnv("GOOGLE_CREDENTIALS_FILE")
-	tokenPath := os.Getenv("GOOGLE_TOKEN_FILE")
-	if tokenPath == "" {
-		tokenPath = "token.json"
-	}
 	spreadsheetID := utils.MustEnv("SPREADSHEET_ID")
 	sheetName := os.Getenv("SHEET_NAME")
 	if sheetName == "" {
@@ -46,7 +42,7 @@ func main() {
 	}
 	log.Printf("authorized as @%s", bot.Self.UserName)
 
-	googleClient, googleTS, err := gauth.NewClient(ctx, googleCreds, tokenPath)
+	googleClient, googleTS, err := gauth.NewClient(ctx, googleCreds)
 	if err != nil {
 		log.Fatalf("failed to create google client: %v", err)
 	}
