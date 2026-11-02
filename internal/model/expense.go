@@ -15,7 +15,7 @@ const (
 	CategoryGiftsDonation  Category = "Gifts & Donation"
 	CategoryOthers         Category = "Others"
 	CategoryHousing        Category = "Housing"
-	CategorySubscription   Category = "Subscription"
+	CategoryRecurringBills Category = "Recurring Bills"
 	CategoryOrangTua       Category = "Orang Tua"
 	CategoryEducation      Category = "Education"
 	CategoryOrthodental    Category = "Orthodental"
@@ -33,7 +33,7 @@ var allCategories = []Category{
 	CategoryGiftsDonation,
 	CategoryOthers,
 	CategoryHousing,
-	CategorySubscription,
+	CategoryRecurringBills,
 	CategoryOrangTua,
 	CategoryEducation,
 	CategoryOrthodental,

@@ -30,7 +30,7 @@ A Telegram bot that logs personal expenses to Google Sheets. Send a receipt phot
 
 ## Supported Categories
 
-`Groceries` · `Eating Out` · `Transportation` · `Shopping` · `Personal Care` · `Date` · `Hobbies & Leisure` · `Gifts & Donation` · `Others` · `Housing` · `Subscription` · `Orang Tua` · `Education` · `Orthodental` · `Investment`
+`Groceries` · `Eating Out` · `Transportation` · `Shopping` · `Personal Care` · `Date` · `Hobbies & Leisure` · `Gifts & Donation` · `Others` · `Housing` · `Recurring Bills` · `Orang Tua` · `Education` · `Orthodental` · `Investment`
 
 ## Vision Providers
 
