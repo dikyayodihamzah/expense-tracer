@@ -30,20 +30,29 @@ func ParseAddCommand(args string) (*model.Expense, error) {
 		return nil, fmt.Errorf(usage)
 	}
 
-	categoryStr := parts[len(parts)-1]
-	nominalStr := parts[len(parts)-2]
-	description := strings.Join(parts[:len(parts)-2], " ")
-
-	nominal, err := strconv.ParseInt(nominalStr, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("nominal must be a number, got %q", nominalStr)
+	// The nominal is the last numeric token: the description is everything
+	// before it and the category, which may span several words, everything after.
+	i := len(parts) - 1
+	var nominal int64
+	for ; i >= 0; i-- {
+		n, err := strconv.ParseInt(parts[i], 10, 64)
+		if err == nil {
+			nominal = n
+			break
+		}
+	}
+	if i < 0 {
+		return nil, fmt.Errorf("nominal must be a number")
+	}
+	if i == 0 || i == len(parts)-1 {
+		return nil, fmt.Errorf(usage)
 	}
 
 	return &model.Expense{
 		Date:        date,
-		Description: description,
+		Description: strings.Join(parts[:i], " "),
 		Nominal:     nominal,
-		Category:    model.MatchCategory(categoryStr),
+		Category:    model.MatchCategory(strings.Join(parts[i+1:], " ")),
 	}, nil
 }
 

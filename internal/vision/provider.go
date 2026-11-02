@@ -71,7 +71,7 @@ Return ONLY a valid JSON object with these exact keys:
   "date": "DD/MM/YYYY, the transaction date printed on the image, never today's date",
   "expenses": [
     {
-      "category": "one of: Food, Personal Care, Transportation, Shopping, Entertainment and Leisure, Donation, Orthodental, Investment, Others",
+      "category": "one of: Groceries, Eating Out, Transportation, Shopping, Personal Care, Date, Hobbies & Leisure, Gifts & Donation, Others, Housing, Subscription, Orang Tua, Education, Orthodental, Investment",
       "description": "merchant name plus the items in this group, short",
       "nominal": <integer amount in IDR, no currency symbol>
     }
@@ -79,7 +79,10 @@ Return ONLY a valid JSON object with these exact keys:
 }
 Grouping rules: if the items on the image belong to different categories, return one entry per category
 with that category's items summed. Example: a supermarket receipt with peanuts, milk and detergent becomes
-Food (peanuts and milk) and Shopping (detergent). If everything belongs to one category, return a single entry.
+Groceries (peanuts and milk) and Shopping (detergent). If everything belongs to one category, return a single entry.
+Category hints: Groceries is food and drink to take home; Eating Out is a meal or snack bought ready to eat;
+Housing is rent, mess dues, electricity/PLN tokens, internet and water; Subscription is recurring memberships
+such as gym or apps; Others covers phone credit, data packages and bank or admin fees.
 Date rules: convert whatever format is printed (e.g. "17 Okt 2026", "17-10-26", "2026-10-17 18:42") to DD/MM/YYYY.
 The day always comes before the month. Always output a 4-digit year; a 2-digit year means 20YY.
 If no transaction date is visible, use an empty string for "date".

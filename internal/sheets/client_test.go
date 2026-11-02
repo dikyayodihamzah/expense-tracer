@@ -54,7 +54,7 @@ func TestBuildRow_FieldOrder(t *testing.T) {
 	e := &model.Expense{
 		Date:        "14/05/2026",
 		Month:       "May",
-		Category:    model.CategoryFood,
+		Category:    model.CategoryEatingOut,
 		Description: "lunch",
 		Nominal:     50000,
 	}
@@ -70,7 +70,7 @@ func TestBuildRow_FieldOrder(t *testing.T) {
 	if row[2] != "May" {
 		t.Errorf("Month column mismatch: %v", row[2])
 	}
-	if row[3] != "Food" {
+	if row[3] != "Eating Out" {
 		t.Errorf("Category column mismatch: %v", row[3])
 	}
 	if row[4] != "lunch" {
@@ -94,7 +94,7 @@ func TestNew_CreatesClient(t *testing.T) {
 func TestReadTransactions(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{
-			"values": []any{[]any{"ts", "14/05/2026", "May", "Food", "lunch", "35000"}},
+			"values": []any{[]any{"ts", "14/05/2026", "May", "Eating Out", "lunch", "35000"}},
 		})
 	})
 	c, _ := sheets.New(context.Background(), mockClient(handler), "test-id", "Sheet1")
@@ -180,7 +180,7 @@ func TestAppendExpense_WritesBelowLastRow(t *testing.T) {
 		}
 	})
 	c, _ := sheets.New(context.Background(), mockClient(handler), "test-id", "Sheet1")
-	e := &model.Expense{Date: "14/05/2026", Month: "May", Category: model.CategoryFood, Description: "lunch", Nominal: 35000}
+	e := &model.Expense{Date: "14/05/2026", Month: "May", Category: model.CategoryEatingOut, Description: "lunch", Nominal: 35000}
 	for i := 0; i < 2; i++ {
 		if err := c.AppendExpense(context.Background(), e); err != nil {
 			t.Fatalf("unexpected error: %v", err)

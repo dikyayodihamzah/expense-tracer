@@ -24,13 +24,13 @@ A Telegram bot that logs personal expenses to Google Sheets. Send a receipt phot
 
 **Example:**
 ```
-/add makan siang 35000 Food
-/add makan siang 35000 Food 17/10/2026
+/add makan siang 35000 Eating Out
+/add makan siang 35000 Eating Out 17/10/2026
 ```
 
 ## Supported Categories
 
-`Food` · `Personal Care` · `Transportation` · `Shopping` · `Entertainment and Leisure` · `Donation` · `Orthodental` · `Investment` · `Others`
+`Groceries` · `Eating Out` · `Transportation` · `Shopping` · `Personal Care` · `Date` · `Hobbies & Leisure` · `Gifts & Donation` · `Others` · `Housing` · `Subscription` · `Orang Tua` · `Education` · `Orthodental` · `Investment`
 
 ## Vision Providers
 

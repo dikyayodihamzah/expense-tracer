@@ -15,11 +15,11 @@ func TestParseCLIOutput(t *testing.T) {
 	}{
 		{
 			name: "success envelope",
-			in:   `{"is_error":false,"result":"{\"date\":\"17/10/2026\",\"expenses\":[{\"category\":\"Food\",\"description\":\"Indomaret\",\"nominal\":45200}]}"}`,
+			in:   `{"is_error":false,"result":"{\"date\":\"17/10/2026\",\"expenses\":[{\"category\":\"Eating Out\",\"description\":\"Indomaret\",\"nominal\":45200}]}"}`,
 		},
 		{
 			name: "fenced result",
-			in:   "{\"is_error\":false,\"result\":\"```json\\n{\\\"date\\\":\\\"17/10/2026\\\",\\\"expenses\\\":[{\\\"category\\\":\\\"Food\\\",\\\"description\\\":\\\"Indomaret\\\",\\\"nominal\\\":45200}]}\\n```\"}",
+			in:   "{\"is_error\":false,\"result\":\"```json\\n{\\\"date\\\":\\\"17/10/2026\\\",\\\"expenses\\\":[{\\\"category\\\":\\\"Eating Out\\\",\\\"description\\\":\\\"Indomaret\\\",\\\"nominal\\\":45200}]}\\n```\"}",
 		},
 		{name: "cli error", in: `{"is_error":true,"result":"rate limited"}`, wantErr: "rate limited"},
 		{name: "garbage", in: `nope`, wantErr: "envelope"},
@@ -37,7 +37,7 @@ func TestParseCLIOutput(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if len(es) != 1 || es[0].Nominal != 45200 || es[0].Category != model.CategoryFood || es[0].Description != "Indomaret" {
+			if len(es) != 1 || es[0].Nominal != 45200 || es[0].Category != model.CategoryEatingOut || es[0].Description != "Indomaret" {
 				t.Errorf("unexpected expenses: %+v", es)
 			}
 		})
