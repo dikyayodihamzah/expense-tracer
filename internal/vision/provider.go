@@ -71,7 +71,7 @@ Return ONLY a valid JSON object with these exact keys:
   "date": "DD/MM/YYYY, the transaction date printed on the image, never today's date",
   "expenses": [
     {
-      "category": "one of: Groceries, Eating Out, Transportation, Shopping, Personal Care, Date, Hobbies & Leisure, Gifts & Donation, Others, Housing, Recurring Bills, Orang Tua, Education, Orthodental, Investment",
+      "category": "one of: Groceries, Eating Out, Transportation, Shopping, Personal Care, Date, Hobbies & Leisure, Gifts & Donation, Others, Housing, Recurring Bills, Education, Orthodental, Investment",
       "description": "merchant name plus the items in this group, short",
       "nominal": <integer amount in IDR, no currency symbol>
     }
