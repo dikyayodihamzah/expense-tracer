@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -68,7 +69,15 @@ func main() {
 	// Rows from the first pocket group down; reading stops at the "Total" row.
 	pocketTable := envOr("POCKET_TABLE", "Monthly Expense!F3:K40")
 
-	ctrl := telegram.New(bot, sheetsClient, vp, pocketCells, pocketTable)
+	// Chat that gets the month-end checklist; unset disables the reminder.
+	var reminderChatID int64
+	if v := os.Getenv("REMINDER_CHAT_ID"); v != "" {
+		if reminderChatID, err = strconv.ParseInt(v, 10, 64); err != nil {
+			log.Fatalf("invalid REMINDER_CHAT_ID %q: %v", v, err)
+		}
+	}
+
+	ctrl := telegram.New(bot, sheetsClient, vp, pocketCells, pocketTable, reminderChatID)
 	ctrl.Run(ctx)
 
 	log.Println("bot stopped")

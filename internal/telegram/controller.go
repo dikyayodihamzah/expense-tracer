@@ -26,18 +26,21 @@ type Controller struct {
 	pocketCells map[model.Account]string
 	// pocketTable is the pocket tracker range read by /pockets.
 	pocketTable string
+	// reminderChatID receives the month-end checklist; 0 disables it.
+	reminderChatID int64
 
 	mu             sync.Mutex
 	pendingExpense map[int64][]*model.Expense
 }
 
-func New(bot *tgbotapi.BotAPI, sc *sheets.Client, vp vision.Provider, pocketCells map[model.Account]string, pocketTable string) *Controller {
+func New(bot *tgbotapi.BotAPI, sc *sheets.Client, vp vision.Provider, pocketCells map[model.Account]string, pocketTable string, reminderChatID int64) *Controller {
 	return &Controller{
 		bot:            bot,
 		sheets:         sc,
 		vision:         vp,
 		pocketCells:    pocketCells,
 		pocketTable:    pocketTable,
+		reminderChatID: reminderChatID,
 		pendingExpense: make(map[int64][]*model.Expense),
 	}
 }
@@ -75,6 +78,10 @@ func (tc *Controller) HandleUpdate(ctx context.Context, update tgbotapi.Update) 
 		tc.handleBudget(ctx, chatID)
 	case "pockets":
 		tc.handlePockets(ctx, chatID)
+	case "left":
+		tc.handleLeft(ctx, chatID)
+	case "recent":
+		tc.handleRecent(ctx, chatID)
 	}
 }
 
@@ -179,13 +186,33 @@ func (tc *Controller) handleBudget(ctx context.Context, chatID int64) {
 }
 
 func (tc *Controller) handlePockets(ctx context.Context, chatID int64) {
-	rows, err := tc.sheets.ReadPockets(ctx, tc.pocketTable)
+	rows, err := tc.sheets.ReadRange(ctx, tc.pocketTable)
 	if err != nil {
 		log.Printf("[handlePockets] chatID=%d: read pockets: %v", chatID, err)
 		tc.reply(chatID, "❌ Failed to read pockets: "+err.Error())
 		return
 	}
 	tc.replyMarkdown(chatID, expense.FormatPockets(rows))
+}
+
+func (tc *Controller) handleLeft(ctx context.Context, chatID int64) {
+	rows, err := tc.sheets.ReadRange(ctx, "Monthly Expense!A2:D32")
+	if err != nil {
+		log.Printf("[handleLeft] chatID=%d: read monthly expense: %v", chatID, err)
+		tc.reply(chatID, "❌ Failed to read budget: "+err.Error())
+		return
+	}
+	tc.replyMarkdown(chatID, expense.FormatLeft(rows, time.Now().In(wib)))
+}
+
+func (tc *Controller) handleRecent(ctx context.Context, chatID int64) {
+	rows, err := tc.sheets.ReadTransactions(ctx)
+	if err != nil {
+		log.Printf("[handleRecent] chatID=%d: read transactions: %v", chatID, err)
+		tc.reply(chatID, "❌ Failed to read transactions: "+err.Error())
+		return
+	}
+	tc.reply(chatID, expense.FormatRecent(rows, 10))
 }
 
 func (tc *Controller) handleCallback(ctx context.Context, cb *tgbotapi.CallbackQuery) {
@@ -410,6 +437,22 @@ func (tc *Controller) replyMarkdown(chatID int64, text string) {
 
 // Run starts the Telegram long-polling loop. Blocks until ctx is cancelled.
 func (tc *Controller) Run(ctx context.Context) {
+	// Lists the commands in Telegram's "/" menu.
+	if _, err := tc.bot.Request(tgbotapi.NewSetMyCommands(
+		tgbotapi.BotCommand{Command: "add", Description: "Add an expense: /add <desc> <nominal> <category> [@account] [date]"},
+		tgbotapi.BotCommand{Command: "today", Description: "Today's expenses"},
+		tgbotapi.BotCommand{Command: "recent", Description: "Last 10 expenses"},
+		tgbotapi.BotCommand{Command: "left", Description: "Living budget left and per-day allowance"},
+		tgbotapi.BotCommand{Command: "pockets", Description: "Pocket balances"},
+		tgbotapi.BotCommand{Command: "summary", Description: "This month by category"},
+		tgbotapi.BotCommand{Command: "budget", Description: "Cumulative budget progress"},
+	)); err != nil {
+		log.Printf("[Run] set commands: %v", err)
+	}
+	if tc.reminderChatID != 0 {
+		go tc.runMonthEndReminder(ctx, tc.reminderChatID)
+	}
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates := tc.bot.GetUpdatesChan(u)
