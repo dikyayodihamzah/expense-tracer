@@ -216,91 +216,51 @@ func TestAppendExpense_WriteError(t *testing.T) {
 	}
 }
 
-func deleteHandler(valuesResp, metaResp, batchResp any) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		path := r.URL.Path
-		switch {
-		case strings.HasSuffix(path, ":batchUpdate"):
-			json.NewEncoder(w).Encode(batchResp)
-		case strings.Contains(path, "/values/"):
-			json.NewEncoder(w).Encode(valuesResp)
-		default:
-			json.NewEncoder(w).Encode(metaResp)
+func TestAppendAmount(t *testing.T) {
+	tests := []struct {
+		cur  any
+		want string
+	}{
+		{nil, "=8000"},
+		{"", "=8000"},
+		{float64(74479), "=74479+8000"},
+		{float64(1588876), "=1588876+8000"},
+		{"=74479+3000", "=74479+3000+8000"},
+	}
+	for _, tt := range tests {
+		if got := sheets.AppendAmount(tt.cur, 8000); got != tt.want {
+			t.Errorf("AppendAmount(%v) = %q, want %q", tt.cur, got, tt.want)
 		}
 	}
 }
 
-func TestDeleteLastRow(t *testing.T) {
-	handler := deleteHandler(
-		map[string]any{"values": []any{[]any{"header"}, []any{"data"}}},
-		spreadsheetMeta("Sheet1"),
-		map[string]any{"spreadsheetId": "test-id"},
-	)
+func TestAddToCell(t *testing.T) {
+	var put map[string]any
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			if r.URL.Query().Get("valueRenderOption") != "FORMULA" {
+				t.Errorf("must read the formula, not the value: %s", r.URL.RawQuery)
+			}
+			writeJSON(w, map[string]any{"values": []any{[]any{"=74479+3000"}}})
+			return
+		}
+		json.NewDecoder(r.Body).Decode(&put)
+		writeJSON(w, map[string]any{"spreadsheetId": "test-id"})
+	})
 	c, _ := sheets.New(context.Background(), mockClient(handler), "test-id", "Sheet1")
-	if err := c.DeleteLastRow(context.Background()); err != nil {
+	if err := c.AddToCell(context.Background(), "Monthly Expense!J8", 8000); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-}
-
-func TestDeleteLastRow_NoDataRows(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, map[string]any{"values": []any{[]any{"header"}}})
-	})
-	c, _ := sheets.New(context.Background(), mockClient(handler), "test-id", "Sheet1")
-	if err := c.DeleteLastRow(context.Background()); err == nil {
-		t.Error("expected error for no data rows")
+	vals, _ := put["values"].([]any)
+	if len(vals) != 1 || vals[0].([]any)[0] != "=74479+3000+8000" {
+		t.Errorf("wrote %v", put["values"])
 	}
 }
 
-func TestDeleteLastRow_ReadError(t *testing.T) {
+func TestAddToCell_ReadError(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { errResponse(w) })
 	c, _ := sheets.New(context.Background(), mockClient(handler), "test-id", "Sheet1")
-	if err := c.DeleteLastRow(context.Background()); err == nil {
+	if err := c.AddToCell(context.Background(), "Monthly Expense!J8", 8000); err == nil {
 		t.Error("expected error")
-	}
-}
-
-func TestDeleteLastRow_GetSheetIDError(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "/values/") {
-			writeJSON(w, map[string]any{"values": []any{[]any{"header"}, []any{"data"}}})
-		} else {
-			errResponse(w)
-		}
-	})
-	c, _ := sheets.New(context.Background(), mockClient(handler), "test-id", "Sheet1")
-	if err := c.DeleteLastRow(context.Background()); err == nil {
-		t.Error("expected error from getSheetID")
-	}
-}
-
-func TestDeleteLastRow_SheetNotFound(t *testing.T) {
-	handler := deleteHandler(
-		map[string]any{"values": []any{[]any{"header"}, []any{"data"}}},
-		spreadsheetMeta("OtherSheet"),
-		map[string]any{"spreadsheetId": "test-id"},
-	)
-	c, _ := sheets.New(context.Background(), mockClient(handler), "test-id", "Sheet1")
-	if err := c.DeleteLastRow(context.Background()); err == nil {
-		t.Error("expected error when sheet not found")
-	}
-}
-
-func TestDeleteLastRow_BatchUpdateError(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
-		switch {
-		case strings.HasSuffix(path, ":batchUpdate"):
-			errResponse(w)
-		case strings.Contains(path, "/values/"):
-			writeJSON(w, map[string]any{"values": []any{[]any{"header"}, []any{"data"}}})
-		default:
-			writeJSON(w, spreadsheetMeta("Sheet1"))
-		}
-	})
-	c, _ := sheets.New(context.Background(), mockClient(handler), "test-id", "Sheet1")
-	if err := c.DeleteLastRow(context.Background()); err == nil {
-		t.Error("expected error from batchUpdate")
 	}
 }

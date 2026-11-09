@@ -9,7 +9,7 @@ A Telegram bot that logs personal expenses to Google Sheets. Send a receipt phot
 - **Daily summary** — `/today` lists every expense recorded today with a total
 - **Monthly summary** — `/summary` breaks spending down by category for the current month
 - **Budget tracking** — `/budget` shows cumulative spend vs. budget for the current day
-- **Undo** — `/delete` removes the last appended row
+- **Billed account** — every expense records where it was paid from (Jago Main by default); GoPay, BRI and cash spending is added to the pocket tracker automatically
 
 ## Bot Commands
 
@@ -19,14 +19,23 @@ A Telegram bot that logs personal expenses to Google Sheets. Send a receipt phot
 | `/today` | Show today's expenses and total |
 | `/summary` | Show this month's category breakdown |
 | `/budget` | Show cumulative budget progress for today |
-| `/delete` | Delete the last saved expense |
+| `/left` | Show the living budget left this month and the per-day allowance |
+| `/recent` | Show the last 10 expenses |
+| `/pockets` | Show each pocket's balance left, used and top-up from the pocket tracker |
 | _(send a photo)_ | Extract expense from a receipt image |
 
 **Example:**
 ```
 /add makan siang 35000 Eating Out
 /add makan siang 35000 Eating Out 17/10/2026
+/add ojek 8000 Transportation @gopay
 ```
+
+After a photo or `/add`, the bot shows the details with **Save**, **Cancel**, **Edit category** and **Edit account** buttons.
+
+**Accounts:** `@jagomain` (default) · `@gopay` · `@bri` · `@cash` · `@leisure` · `@bills` · `@education` · `@orthodental`. The bot detects the account from the screenshot when it can.
+
+**Pocket tracker:** daily-living spending paid with GoPay, BRI or cash is added to that account's "Used" cell (`+amount` appended to the cell's formula). An expense paid from an account other than the pocket that budgets it (e.g. a bill paid with GoPay, a date paid from Jago Main) is not added; the bot replies with the transfer to make instead.
 
 ## Supported Categories
 
@@ -97,6 +106,11 @@ The bot expects two sheets:
 | `ANTHROPIC_API_KEY` | if claude | — | Anthropic API key |
 | `OPENAI_API_KEY` | if openai | — | OpenAI API key |
 | `SHEET_NAME` | no | `Transaction 2026` | Name of the transaction sheet |
+| `POCKET_CELL_BRI` | no | `Monthly Expense!J4` | Pocket tracker cell for BRI spending |
+| `POCKET_CELL_CASH` | no | `Monthly Expense!J5` | Pocket tracker cell for cash spending |
+| `POCKET_CELL_GOPAY` | no | `Monthly Expense!J8` | Pocket tracker cell for GoPay spending |
+| `POCKET_TABLE` | no | `Monthly Expense!F3:K40` | Pocket tracker range read by `/pockets` (stops at the Total row) |
+| `REMINDER_CHAT_ID` | no | — | Telegram chat that gets the month-end checklist at 20:00 WIB on the last day of the month |
 
 ## Running
 

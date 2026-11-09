@@ -24,6 +24,7 @@ type visionItem struct {
 
 type visionResponse struct {
 	Date     string       `json:"date"`
+	Account  string       `json:"account"`
 	Expenses []visionItem `json:"expenses"`
 }
 
@@ -45,6 +46,8 @@ func ParseJSON(data []byte) ([]*model.Expense, error) {
 		return nil, fmt.Errorf("parse vision JSON: %w", err)
 	}
 
+	// An unknown or missing account falls back to Jago Main, the usual payment source.
+	account, _ := model.MatchAccount(vr.Account)
 	var expenses []*model.Expense
 	for _, it := range vr.Expenses {
 		if it.Nominal <= 0 {
@@ -55,6 +58,7 @@ func ParseJSON(data []byte) ([]*model.Expense, error) {
 			Category:    model.MatchCategory(it.Category),
 			Description: it.Description,
 			Nominal:     it.Nominal,
+			Account:     account,
 		})
 	}
 	if len(expenses) == 0 {
@@ -69,6 +73,7 @@ Analyze this receipt or bank transaction image and extract the expense details.
 Return ONLY a valid JSON object with these exact keys:
 {
   "date": "DD/MM/YYYY, the transaction date printed on the image, never today's date",
+  "account": "one of: Jago Main, GoPay, BRI, Cash, Leisure, Bills, Education, Orthodental",
   "expenses": [
     {
       "category": "one of: Groceries, Eating Out, Transportation, Shopping, Personal Care, Date, Hobbies & Leisure, Gifts & Donation, Others, Housing, Recurring Bills, Education, Orthodental, Investment",
@@ -90,6 +95,10 @@ Nominal rules: record only the money actually charged, and make the entries' nom
 Spread tax, service charge, shipping and discounts across the entries in proportion to their items.
 On a GoPay invoice, ignore the part paid with GoPay Coins / GoPay points ("poin") and use only the amount
 charged to the GoPay balance ("saldo GoPay") or to another real payment source.
+Account rules: the account the money left from. GoPay app screens marked "GoPay Saldo" are GoPay; a GoPay
+transaction whose source is shown as "Jago", and Jago app screens, are Jago Main unless a Jago pocket named
+Leisure, Bills, Education or Orthodental is shown; BRImo, BRI or BRIZZI screens are BRI; a paper receipt
+that says it was paid in cash (tunai) is Cash. When unsure, use Jago Main.
 Do not include any text outside the JSON object.`
 
 // New creates a Provider based on the VISION_PROVIDER env value.

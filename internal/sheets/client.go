@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"google.golang.org/api/option"
@@ -79,44 +81,53 @@ func NextRowRange(sheetName string, usedRows, cols int) string {
 	return fmt.Sprintf("%s!A%d:%s%d", sheetName, next, last, next)
 }
 
-func (c *Client) DeleteLastRow(ctx context.Context) error {
-	readRange := c.sheetName + "!A:A"
+// AddToCell adds amount to a typed-in total such as a pocket tracker "Used" cell
+// (cell in A1 notation, e.g. "Monthly Expense!J8"). It appends "+amount" to the
+// cell's formula instead of overwriting the total, so every addition stays visible
+// and can be corrected by hand.
+func (c *Client) AddToCell(ctx context.Context, cell string, amount int64) error {
 	resp, err := c.svc.Spreadsheets.Values.
-		Get(c.spreadsheetID, readRange).
+		Get(c.spreadsheetID, cell).
+		ValueRenderOption("FORMULA").
 		Context(ctx).
 		Do()
 	if err != nil {
-		return fmt.Errorf("read rows: %w", err)
+		return fmt.Errorf("read %s: %w", cell, err)
 	}
-
-	lastRow := len(resp.Values)
-	if lastRow <= 1 {
-		return fmt.Errorf("no data rows to delete")
+	var cur any
+	if len(resp.Values) > 0 && len(resp.Values[0]) > 0 {
+		cur = resp.Values[0][0]
 	}
-
-	sheetID, err := c.getSheetID(ctx)
-	if err != nil {
-		return err
-	}
-
-	req := &sheetsapi.BatchUpdateSpreadsheetRequest{
-		Requests: []*sheetsapi.Request{
-			{
-				DeleteDimension: &sheetsapi.DeleteDimensionRequest{
-					Range: &sheetsapi.DimensionRange{
-						SheetId:    sheetID,
-						Dimension:  "ROWS",
-						StartIndex: int64(lastRow - 1),
-						EndIndex:   int64(lastRow),
-					},
-				},
-			},
-		},
-	}
-	if _, err := c.svc.Spreadsheets.BatchUpdate(c.spreadsheetID, req).Context(ctx).Do(); err != nil {
-		return fmt.Errorf("delete row: %w", err)
+	vr := &sheetsapi.ValueRange{Values: [][]any{{AppendAmount(cur, amount)}}}
+	if _, err := c.svc.Spreadsheets.Values.
+		Update(c.spreadsheetID, cell, vr).
+		ValueInputOption("USER_ENTERED").
+		Context(ctx).
+		Do(); err != nil {
+		return fmt.Errorf("write %s: %w", cell, err)
 	}
 	return nil
+}
+
+// AppendAmount returns the formula for cur plus amount: "=8000" for an empty cell,
+// "=74479+8000" for a plain number and "=74479+3000+8000" for a formula.
+// Exported for unit testing without a live Sheets connection.
+func AppendAmount(cur any, amount int64) string {
+	switch v := cur.(type) {
+	case float64:
+		// FORMULA rendering returns plain numbers as float64; avoid exponent notation.
+		return fmt.Sprintf("=%s+%d", strconv.FormatFloat(v, 'f', -1, 64), amount)
+	case string:
+		v = strings.TrimSpace(v)
+		switch {
+		case v == "":
+		case strings.HasPrefix(v, "="):
+			return fmt.Sprintf("%s+%d", v, amount)
+		default:
+			return fmt.Sprintf("=%s+%d", v, amount)
+		}
+	}
+	return fmt.Sprintf("=%d", amount)
 }
 
 func (c *Client) ReadTransactions(ctx context.Context) ([][]any, error) {
@@ -131,6 +142,20 @@ func (c *Client) ReadTransactions(ctx context.Context) ([][]any, error) {
 	return resp.Values, nil
 }
 
+// ReadRange reads rng (e.g. "Monthly Expense!F3:K40") with unformatted values, so
+// amounts come back as numbers.
+func (c *Client) ReadRange(ctx context.Context, rng string) ([][]any, error) {
+	resp, err := c.svc.Spreadsheets.Values.
+		Get(c.spreadsheetID, rng).
+		ValueRenderOption("UNFORMATTED_VALUE").
+		Context(ctx).
+		Do()
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", rng, err)
+	}
+	return resp.Values, nil
+}
+
 func (c *Client) ReadMonthlyExpense(ctx context.Context) ([][]any, error) {
 	resp, err := c.svc.Spreadsheets.Values.
 		Get(c.spreadsheetID, "Monthly Expense!A:D").
@@ -140,17 +165,4 @@ func (c *Client) ReadMonthlyExpense(ctx context.Context) ([][]any, error) {
 		return nil, fmt.Errorf("read monthly expense: %w", err)
 	}
 	return resp.Values, nil
-}
-
-func (c *Client) getSheetID(ctx context.Context) (int64, error) {
-	ss, err := c.svc.Spreadsheets.Get(c.spreadsheetID).Context(ctx).Do()
-	if err != nil {
-		return 0, fmt.Errorf("get spreadsheet: %w", err)
-	}
-	for _, s := range ss.Sheets {
-		if s.Properties.Title == c.sheetName {
-			return s.Properties.SheetId, nil
-		}
-	}
-	return 0, fmt.Errorf("sheet %q not found", c.sheetName)
 }

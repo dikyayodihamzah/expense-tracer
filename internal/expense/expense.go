@@ -10,10 +10,11 @@ import (
 	"github.com/dikyayodihamzah/expense-tracer/internal/pkg/utils"
 )
 
-// ParseAddCommand parses "/add <description> <nominal> <category> [DD/MM/YYYY]" args.
+// ParseAddCommand parses "/add <description> <nominal> <category> [@account] [DD/MM/YYYY]" args.
 // A trailing date is optional; without it Date stays empty and means today.
+// The account is optional too and defaults to Jago Main.
 func ParseAddCommand(args string) (*model.Expense, error) {
-	const usage = "usage: /add <description> <nominal> <category> [DD/MM/YYYY]"
+	const usage = "usage: /add <description> <nominal> <category> [@account] [DD/MM/YYYY]"
 	parts := strings.Fields(args)
 
 	var date string
@@ -24,6 +25,15 @@ func ParseAddCommand(args string) (*model.Expense, error) {
 			return nil, fmt.Errorf("invalid date %q (expected DD/MM/YYYY)", parts[n-1])
 		}
 		date = t.Format("02/01/2006")
+		parts = parts[:n-1]
+	}
+	account := model.AccountJagoMain
+	if n := len(parts); n > 0 && strings.HasPrefix(parts[n-1], "@") {
+		a, ok := model.MatchAccount(strings.TrimPrefix(parts[n-1], "@"))
+		if !ok {
+			return nil, fmt.Errorf("unknown account %q (use one of: %s)", parts[n-1], accountList())
+		}
+		account = a
 		parts = parts[:n-1]
 	}
 	if len(parts) < 3 {
@@ -53,7 +63,16 @@ func ParseAddCommand(args string) (*model.Expense, error) {
 		Description: strings.Join(parts[:i], " "),
 		Nominal:     nominal,
 		Category:    model.MatchCategory(strings.Join(parts[i+1:], " ")),
+		Account:     account,
 	}, nil
+}
+
+func accountList() string {
+	var names []string
+	for _, a := range model.AllAccounts() {
+		names = append(names, "@"+strings.ToLower(strings.ReplaceAll(string(a), " ", "")))
+	}
+	return strings.Join(names, ", ")
 }
 
 // FillExpenseMeta sets Date (if empty) and Month from the given time.
@@ -81,8 +100,9 @@ func MonthFromDate(date string) (string, error) {
 // FormatConfirmation formats a parsed expense for user confirmation.
 func FormatConfirmation(e *model.Expense) string {
 	return fmt.Sprintf(
-		"📋 *Expense Details*\n\n📅 Date: %s\n🗂 Category: %s\n📝 Description: %s\n💰 Nominal: Rp %s\n\nSave this expense?",
+		"📋 *Expense Details*\n\n📅 Date: %s\n💳 Account: %s\n🗂 Category: %s\n📝 Description: %s\n💰 Nominal: Rp %s\n\nSave this expense?",
 		e.Date,
+		accountOf(e),
 		string(e.Category),
 		e.Description,
 		utils.FormatNominal(e.Nominal),
@@ -101,9 +121,16 @@ func FormatConfirmations(es []*model.Expense) string {
 		lines = append(lines, fmt.Sprintf("%d. 🗂 %s — %s — Rp %s", i+1, e.Category, e.Description, utils.FormatNominal(e.Nominal)))
 	}
 	return fmt.Sprintf(
-		"📋 *Expense Details*\n\n📅 Date: %s\n%s\n\n💰 Total: Rp %s\n\nSave these %d expenses?",
-		es[0].Date, strings.Join(lines, "\n"), utils.FormatNominal(total), len(es),
+		"📋 *Expense Details*\n\n📅 Date: %s\n💳 Account: %s\n%s\n\n💰 Total: Rp %s\n\nSave these %d expenses?",
+		es[0].Date, accountOf(es[0]), strings.Join(lines, "\n"), utils.FormatNominal(total), len(es),
 	)
+}
+
+func accountOf(e *model.Expense) model.Account {
+	if e.Account == "" {
+		return model.AccountJagoMain
+	}
+	return e.Account
 }
 
 // FormatSaved formats the confirmation sent after expenses were written to the sheet.
