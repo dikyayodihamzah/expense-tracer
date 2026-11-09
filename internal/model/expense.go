@@ -5,27 +5,37 @@ import "strings"
 type Category string
 
 const (
-	CategoryFood                 Category = "Food"
-	CategoryPersonalCare         Category = "Personal Care"
-	CategoryTransportation       Category = "Transportation"
-	CategoryShopping             Category = "Shopping"
-	CategoryEntertainmentLeisure Category = "Entertainment and Leisure"
-	CategoryDonation             Category = "Donation"
-	CategoryOrthodental          Category = "Orthodental"
-	CategoryInvestment           Category = "Investment"
-	CategoryOthers               Category = "Others"
+	CategoryGroceries      Category = "Groceries"
+	CategoryEatingOut      Category = "Eating Out"
+	CategoryTransportation Category = "Transportation"
+	CategoryShopping       Category = "Shopping"
+	CategoryPersonalCare   Category = "Personal Care"
+	CategoryDate           Category = "Date"
+	CategoryHobbiesLeisure Category = "Hobbies & Leisure"
+	CategoryGiftsDonation  Category = "Gifts & Donation"
+	CategoryOthers         Category = "Others"
+	CategoryHousing        Category = "Housing"
+	CategoryRecurringBills Category = "Recurring Bills"
+	CategoryEducation      Category = "Education"
+	CategoryOrthodental    Category = "Orthodental"
+	CategoryInvestment     Category = "Investment"
 )
 
 var allCategories = []Category{
-	CategoryFood,
-	CategoryPersonalCare,
+	CategoryGroceries,
+	CategoryEatingOut,
 	CategoryTransportation,
 	CategoryShopping,
-	CategoryEntertainmentLeisure,
-	CategoryDonation,
+	CategoryPersonalCare,
+	CategoryDate,
+	CategoryHobbiesLeisure,
+	CategoryGiftsDonation,
+	CategoryOthers,
+	CategoryHousing,
+	CategoryRecurringBills,
+	CategoryEducation,
 	CategoryOrthodental,
 	CategoryInvestment,
-	CategoryOthers,
 }
 
 type Expense struct {

@@ -24,13 +24,13 @@ A Telegram bot that logs personal expenses to Google Sheets. Send a receipt phot
 
 **Example:**
 ```
-/add makan siang 35000 Food
-/add makan siang 35000 Food 17/10/2026
+/add makan siang 35000 Eating Out
+/add makan siang 35000 Eating Out 17/10/2026
 ```
 
 ## Supported Categories
 
-`Food` · `Personal Care` · `Transportation` · `Shopping` · `Entertainment and Leisure` · `Donation` · `Orthodental` · `Investment` · `Others`
+`Groceries` · `Eating Out` · `Transportation` · `Shopping` · `Personal Care` · `Date` · `Hobbies & Leisure` · `Gifts & Donation` · `Others` · `Housing` · `Recurring Bills` · `Education` · `Orthodental` · `Investment`
 
 ## Vision Providers
 
@@ -41,14 +41,14 @@ Set `VISION_PROVIDER` to one of the following, or leave it unset for auto-detect
 | `claude` | Anthropic Claude | `ANTHROPIC_API_KEY` |
 | `claude-cli` | Local `claude` CLI (Claude subscription) | `claude` on `PATH`, logged in |
 | `openai` | OpenAI GPT-4o | `OPENAI_API_KEY` |
-| `gcloud` | Google Cloud Vision | OAuth2 credentials |
+| `gcloud` | Google Cloud Vision | Service account key |
 
 ## Prerequisites
 
 - Go 1.21+
 - A Telegram bot token ([BotFather](https://t.me/BotFather))
 - A Google Sheets spreadsheet
-- A Google Cloud OAuth2 Desktop App credentials file
+- A Google Cloud service account key (JSON)
 - At least one vision provider key, or the `claude` CLI logged in to a subscription (`VISION_PROVIDER=claude-cli`)
 
 ## Setup
@@ -66,9 +66,11 @@ cp .env.example .env
 # Edit .env with your values
 ```
 
-**3. Authenticate Google OAuth2**
+**3. Create a Google service account**
 
-On first run the bot will print a URL. Open it in a browser, grant access, and paste the code back into the terminal. The token is saved to `token.json` and reused on subsequent runs.
+1. In Google Cloud Console, enable the **Google Sheets API** (and the **Cloud Vision API** if you use `VISION_PROVIDER=gcloud`).
+2. Under **IAM & Admin → Service Accounts**, create a service account, then **Keys → Add key → JSON**. Save the file next to the project and set `GOOGLE_CREDENTIALS_FILE` to its path.
+3. Share the spreadsheet with the service account's email (`...@<project>.iam.gserviceaccount.com`) as **Editor**.
 
 **4. Spreadsheet structure**
 
@@ -89,12 +91,11 @@ The bot expects two sheets:
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `TELEGRAM_BOT_TOKEN` | yes | — | Bot token from BotFather |
-| `GOOGLE_CREDENTIALS_FILE` | yes | — | Path to OAuth2 credentials JSON |
+| `GOOGLE_CREDENTIALS_FILE` | yes | — | Path to the service account key JSON |
 | `SPREADSHEET_ID` | yes | — | Google Sheets spreadsheet ID |
 | `VISION_PROVIDER` | no | auto | `claude`, `claude-cli`, `openai`, or `gcloud` |
 | `ANTHROPIC_API_KEY` | if claude | — | Anthropic API key |
 | `OPENAI_API_KEY` | if openai | — | OpenAI API key |
-| `GOOGLE_TOKEN_FILE` | no | `token.json` | Path to save/load OAuth2 token |
 | `SHEET_NAME` | no | `Transaction 2026` | Name of the transaction sheet |
 
 ## Running
@@ -113,12 +114,9 @@ make test
 
 ## Docker
 
-The Google login is interactive, so do it once on your machine and let the container reuse the saved token:
-
-1. Run the bot locally once (`make run`) and complete the Google login. This creates `token.json`.
-2. For `VISION_PROVIDER=claude-cli`, run `claude setup-token` on your machine and put the result in `.env` as `CLAUDE_CODE_OAUTH_TOKEN=...`.
-3. Keep `GOOGLE_CREDENTIALS_FILE` and `GOOGLE_TOKEN_FILE` in `.env` pointing at the host files; compose mounts them read-only into the container.
-4. Start it:
+1. For `VISION_PROVIDER=claude-cli`, run `claude setup-token` on your machine and put the result in `.env` as `CLAUDE_CODE_OAUTH_TOKEN=...`.
+2. Keep `GOOGLE_CREDENTIALS_FILE` in `.env` pointing at the host key file; compose mounts it read-only into the container.
+3. Start it:
    ```bash
    docker compose up -d --build
    docker compose logs -f

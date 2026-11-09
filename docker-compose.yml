@@ -4,18 +4,12 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      # Container-side paths; they override the host paths from .env.
+      # Container-side path; it overrides the host path from .env.
       GOOGLE_CREDENTIALS_FILE: /secrets/credentials.json
-      GOOGLE_TOKEN_FILE: /secrets/token.json
-    # Host paths come from .env (compose substitutes them) and may be bare
-    # filenames, hence the explicit bind form. token.json must already exist:
-    # run the bot locally once to complete the Google login.
+    # The host path comes from .env (compose substitutes it) and may be a bare
+    # filename, hence the explicit bind form.
     volumes:
       - type: bind
         source: ${GOOGLE_CREDENTIALS_FILE}
         target: /secrets/credentials.json
-        read_only: true
-      - type: bind
-        source: ${GOOGLE_TOKEN_FILE:-token.json}
-        target: /secrets/token.json
         read_only: true
