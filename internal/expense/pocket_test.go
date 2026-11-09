@@ -85,3 +85,34 @@ func TestPocketActions(t *testing.T) {
 		}
 	}
 }
+
+func TestFormatPockets(t *testing.T) {
+	rows := [][]any{
+		{"BRI"},
+		{"", "BRI Main", "", float64(254750), float64(100000), float64(154750)},
+		{"", "Cash", float64(6000), float64(150000), float64(46000), float64(110000)},
+		{"Jago"},
+		{"", "Bills", "", float64(2280000), float64(2287000), float64(-7000)},
+		{"Total", "", float64(6000), float64(2684750), float64(2433000), float64(257750)},
+		{"", "after total", "", float64(1), float64(1), float64(1)},
+	}
+	out := expense.FormatPockets(rows)
+	for _, want := range []string{
+		"*BRI*",
+		"BRI Main: Rp 154.750 left (used Rp 100.000 of Rp 254.750, 39%)",
+		"Cash: Rp 110.000 left (used Rp 46.000 of Rp 156.000, 29%)",
+		"*Jago*",
+		"⚠️ Bills: Rp -7.000 left",
+		"Total left: Rp 257.750",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "after total") {
+		t.Errorf("rows after Total must be ignored:\n%s", out)
+	}
+	if got := expense.FormatPockets(nil); !strings.Contains(got, "No pocket data") {
+		t.Errorf("empty: %s", got)
+	}
+}

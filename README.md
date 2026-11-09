@@ -19,6 +19,7 @@ A Telegram bot that logs personal expenses to Google Sheets. Send a receipt phot
 | `/today` | Show today's expenses and total |
 | `/summary` | Show this month's category breakdown |
 | `/budget` | Show cumulative budget progress for today |
+| `/pockets` | Show each pocket's balance left, used and top-up from the pocket tracker |
 | _(send a photo)_ | Extract expense from a receipt image |
 
 **Example:**
@@ -106,6 +107,7 @@ The bot expects two sheets:
 | `POCKET_CELL_BRI` | no | `Monthly Expense!J4` | Pocket tracker cell for BRI spending |
 | `POCKET_CELL_CASH` | no | `Monthly Expense!J5` | Pocket tracker cell for cash spending |
 | `POCKET_CELL_GOPAY` | no | `Monthly Expense!J8` | Pocket tracker cell for GoPay spending |
+| `POCKET_TABLE` | no | `Monthly Expense!F3:K40` | Pocket tracker range read by `/pockets` (stops at the Total row) |
 
 ## Running
 

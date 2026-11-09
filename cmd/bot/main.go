@@ -65,7 +65,10 @@ func main() {
 		model.AccountGoPay: envOr("POCKET_CELL_GOPAY", "Monthly Expense!J8"),
 	}
 
-	ctrl := telegram.New(bot, sheetsClient, vp, pocketCells)
+	// Rows from the first pocket group down; reading stops at the "Total" row.
+	pocketTable := envOr("POCKET_TABLE", "Monthly Expense!F3:K40")
+
+	ctrl := telegram.New(bot, sheetsClient, vp, pocketCells, pocketTable)
 	ctrl.Run(ctx)
 
 	log.Println("bot stopped")

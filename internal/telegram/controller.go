@@ -24,17 +24,20 @@ type Controller struct {
 	vision vision.Provider
 	// pocketCells maps a tracked account to its "Used" cell in the pocket tracker.
 	pocketCells map[model.Account]string
+	// pocketTable is the pocket tracker range read by /pockets.
+	pocketTable string
 
 	mu             sync.Mutex
 	pendingExpense map[int64][]*model.Expense
 }
 
-func New(bot *tgbotapi.BotAPI, sc *sheets.Client, vp vision.Provider, pocketCells map[model.Account]string) *Controller {
+func New(bot *tgbotapi.BotAPI, sc *sheets.Client, vp vision.Provider, pocketCells map[model.Account]string, pocketTable string) *Controller {
 	return &Controller{
 		bot:            bot,
 		sheets:         sc,
 		vision:         vp,
 		pocketCells:    pocketCells,
+		pocketTable:    pocketTable,
 		pendingExpense: make(map[int64][]*model.Expense),
 	}
 }
@@ -70,6 +73,8 @@ func (tc *Controller) HandleUpdate(ctx context.Context, update tgbotapi.Update) 
 		tc.handleSummary(ctx, chatID)
 	case "budget":
 		tc.handleBudget(ctx, chatID)
+	case "pockets":
+		tc.handlePockets(ctx, chatID)
 	}
 }
 
@@ -171,6 +176,16 @@ func (tc *Controller) handleBudget(ctx context.Context, chatID int64) {
 		return
 	}
 	tc.replyMarkdown(chatID, expense.FormatBudget(rows, time.Now()))
+}
+
+func (tc *Controller) handlePockets(ctx context.Context, chatID int64) {
+	rows, err := tc.sheets.ReadPockets(ctx, tc.pocketTable)
+	if err != nil {
+		log.Printf("[handlePockets] chatID=%d: read pockets: %v", chatID, err)
+		tc.reply(chatID, "❌ Failed to read pockets: "+err.Error())
+		return
+	}
+	tc.replyMarkdown(chatID, expense.FormatPockets(rows))
 }
 
 func (tc *Controller) handleCallback(ctx context.Context, cb *tgbotapi.CallbackQuery) {

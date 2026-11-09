@@ -142,6 +142,20 @@ func (c *Client) ReadTransactions(ctx context.Context) ([][]any, error) {
 	return resp.Values, nil
 }
 
+// ReadPockets reads the pocket tracker table (e.g. "Monthly Expense!F3:K40") with
+// unformatted values, so amounts come back as numbers.
+func (c *Client) ReadPockets(ctx context.Context, rng string) ([][]any, error) {
+	resp, err := c.svc.Spreadsheets.Values.
+		Get(c.spreadsheetID, rng).
+		ValueRenderOption("UNFORMATTED_VALUE").
+		Context(ctx).
+		Do()
+	if err != nil {
+		return nil, fmt.Errorf("read pockets: %w", err)
+	}
+	return resp.Values, nil
+}
+
 func (c *Client) ReadMonthlyExpense(ctx context.Context) ([][]any, error) {
 	resp, err := c.svc.Spreadsheets.Values.
 		Get(c.spreadsheetID, "Monthly Expense!A:D").
