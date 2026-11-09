@@ -11,6 +11,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/dikyayodihamzah/expense-tracer/internal/gauth"
+	"github.com/dikyayodihamzah/expense-tracer/internal/model"
 	"github.com/dikyayodihamzah/expense-tracer/internal/pkg/utils"
 	"github.com/dikyayodihamzah/expense-tracer/internal/sheets"
 	"github.com/dikyayodihamzah/expense-tracer/internal/telegram"
@@ -57,8 +58,22 @@ func main() {
 		log.Fatalf("failed to create vision provider: %v", err)
 	}
 
-	ctrl := telegram.New(bot, sheetsClient, vp)
+	// The pocket tracker's typed-in "Used" cells; override when the table moves.
+	pocketCells := map[model.Account]string{
+		model.AccountBRI:   envOr("POCKET_CELL_BRI", "Monthly Expense!J4"),
+		model.AccountCash:  envOr("POCKET_CELL_CASH", "Monthly Expense!J5"),
+		model.AccountGoPay: envOr("POCKET_CELL_GOPAY", "Monthly Expense!J8"),
+	}
+
+	ctrl := telegram.New(bot, sheetsClient, vp, pocketCells)
 	ctrl.Run(ctx)
 
 	log.Println("bot stopped")
+}
+
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

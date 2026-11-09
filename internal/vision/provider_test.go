@@ -167,3 +167,29 @@ func TestNew_AutoDetectOpenAI(t *testing.T) {
 		t.Error("expected non-nil provider")
 	}
 }
+
+func TestParseJSON_Account(t *testing.T) {
+	raw := `{"date":"14/05/2026","account":"GoPay","expenses":[{"category":"Groceries","description":"milk","nominal":25000},{"category":"Shopping","description":"soap","nominal":9000}]}`
+	es, err := vision.ParseJSON([]byte(raw))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, e := range es {
+		if e.Account != model.AccountGoPay {
+			t.Errorf("account = %q, want GoPay", e.Account)
+		}
+	}
+
+	for _, raw := range []string{
+		`{"date":"14/05/2026","expenses":[{"category":"Groceries","description":"milk","nominal":25000}]}`,
+		`{"date":"14/05/2026","account":"OVO","expenses":[{"category":"Groceries","description":"milk","nominal":25000}]}`,
+	} {
+		es, err := vision.ParseJSON([]byte(raw))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if es[0].Account != model.AccountJagoMain {
+			t.Errorf("missing or unknown account should default to Jago Main, got %q", es[0].Account)
+		}
+	}
+}

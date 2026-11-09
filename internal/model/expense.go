@@ -44,6 +44,7 @@ type Expense struct {
 	Category    Category
 	Description string
 	Nominal     int64
+	Account     Account // where it was paid from; empty means Jago Main
 }
 
 // MatchCategory matches a string to a known Category, case-sensitive.
