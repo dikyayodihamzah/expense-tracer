@@ -22,8 +22,8 @@ func TestParseAddCommand_Account(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if e.Account != model.AccountJagoMain {
-		t.Errorf("default account = %q, want Jago Main", e.Account)
+	if e.Account != model.AccountCash {
+		t.Errorf("default /add account = %q, want Cash", e.Account)
 	}
 
 	if _, err := expense.ParseAddCommand("nasi 15000 Eating Out @dana"); err == nil || !strings.Contains(err.Error(), "unknown account") {

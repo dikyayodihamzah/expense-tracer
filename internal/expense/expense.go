@@ -12,7 +12,8 @@ import (
 
 // ParseAddCommand parses "/add <description> <nominal> <category> [@account] [DD/MM/YYYY]" args.
 // A trailing date is optional; without it Date stays empty and means today.
-// The account is optional too and defaults to Jago Main.
+// The account is optional too and defaults to Cash: typed-in expenses are
+// usually the ones without a screenshot, i.e. paid in cash.
 func ParseAddCommand(args string) (*model.Expense, error) {
 	const usage = "usage: /add <description> <nominal> <category> [@account] [DD/MM/YYYY]"
 	parts := strings.Fields(args)
@@ -27,7 +28,7 @@ func ParseAddCommand(args string) (*model.Expense, error) {
 		date = t.Format("02/01/2006")
 		parts = parts[:n-1]
 	}
-	account := model.AccountJagoMain
+	account := model.AccountCash
 	if n := len(parts); n > 0 && strings.HasPrefix(parts[n-1], "@") {
 		a, ok := model.MatchAccount(strings.TrimPrefix(parts[n-1], "@"))
 		if !ok {
