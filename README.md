@@ -9,7 +9,7 @@ A Telegram bot that logs personal expenses to Google Sheets. Send a receipt phot
 - **Daily summary** — `/today` lists every expense recorded today with a total
 - **Monthly summary** — `/summary` breaks spending down by category for the current month
 - **Budget tracking** — `/budget` shows cumulative spend vs. budget for the current day
-- **Billed account** — every expense records where it was paid from (Jago Main by default); GoPay, BRI and cash spending is added to the pocket tracker automatically
+- **Billed account** — every expense records where it was paid from (detected from the screenshot, Jago Main when unsure; `/add` defaults to Cash); GoPay, BRI and cash spending is added to the pocket tracker automatically
 
 ## Bot Commands
 
@@ -33,7 +33,7 @@ A Telegram bot that logs personal expenses to Google Sheets. Send a receipt phot
 
 After a photo or `/add`, the bot shows the details with **Save**, **Cancel**, **Edit category** and **Edit account** buttons.
 
-**Accounts:** `@jagomain` (default) · `@gopay` · `@bri` · `@cash` · `@leisure` · `@bills` · `@education` · `@orthodental`. The bot detects the account from the screenshot when it can.
+**Accounts:** `@jagomain` · `@gopay` · `@bri` · `@cash` (default for `/add`) · `@leisure` · `@bills` · `@education` · `@orthodental`. The bot detects the account from the screenshot when it can.
 
 **Pocket tracker:** daily-living spending paid with GoPay, BRI or cash is added to that account's "Used" cell (`+amount` appended to the cell's formula). An expense paid from an account other than the pocket that budgets it (e.g. a bill paid with GoPay, a date paid from Jago Main) is not added; the bot replies with the transfer to make instead.
 
